@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quotation Generator (Gmail)</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;padding:20px;background:#0f1117;color:#e9ecf5}
+    .card{max-width:860px;margin:0 auto;background:#151926;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    input,textarea{width:100%;box-sizing:border-box;background:#0b0d12;color:#e9ecf5;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px}
+    label{font-size:12px;color:#9aa3b2;display:block;margin-bottom:6px}
+    button{background:#C8171E;border:none;color:#fff;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,.12);color:#e9ecf5}
+    .small{font-size:12px;color:#9aa3b2}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 6px">Quotation Generator (Gmail)</h2>
+    <div class="small" style="margin-bottom:14px">Opened from Gmail. Use your existing generator to export PDF, then create a Gmail reply draft with that PDF attached.</div>
+
+    <div class="row">
+      <div style="flex:1;min-width:240px">
+        <label>Thread ID</label>
+        <input id="threadId" />
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label>Message ID</label>
+        <input id="messageId" />
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div style="flex:1;min-width:240px">
+        <label>To</label>
+        <input id="to" />
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label>Subject</label>
+        <input id="subject" />
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Draft body</label>
+      <textarea id="bodyText" rows="6"></textarea>
+    </div>
+
+    <div class="row" style="margin-top:12px;align-items:center">
+      <button class="secondary" id="openGeneratorBtn" type="button">Open generator</button>
+      <span class="small">Use your generator to export PDF, then upload it below.</span>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>PDF to attach</label>
+      <input id="pdfFile" type="file" accept="application/pdf" />
+    </div>
+
+    <div class="row" style="margin-top:12px;align-items:center;justify-content:space-between">
+      <div class="small">Backend URL is configured in JS (edit this file for your deployment).</div>
+      <button id="createDraftBtn" type="button">Create Gmail reply draft</button>
+    </div>
+
+    <div id="status" class="small" style="margin-top:10px;white-space:pre-wrap"></div>
+  </div>
+
+  <script>
+    // TODO: set these
+    const GENERATOR_URL = 'https://bhanukhandelwal.github.io/quotation-generator-loginUrl/';
+    const BACKEND_URL = 'https://YOUR_BACKEND_HOST/api/gmail/reply-draft';
+
+    const qs = new URLSearchParams(location.search);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    set('threadId', qs.get('threadId'));
+    set('messageId', qs.get('messageId'));
+    set('to', qs.get('to'));
+    set('subject', qs.get('subject'));
+    set('bodyText', `Hi,\\n\\nPlease find attached the quotation.\\n\\nRegards,`);
+
+    document.getElementById('openGeneratorBtn').onclick = () => {
+      window.open(GENERATOR_URL, '_blank', 'noopener');
+    };
+
+    async function fileToBase64(file) {
+      const buf = await file.arrayBuffer();
+      let bin = '';
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      return btoa(bin);
+    }
+
+    document.getElementById('createDraftBtn').onclick = async () => {
+      const status = document.getElementById('status');
+      status.textContent = 'Preparing…';
+
+      const threadId = document.getElementById('threadId').value.trim();
+      const to = document.getElementById('to').value.trim();
+      const subject = document.getElementById('subject').value.trim();
+      const bodyText = document.getElementById('bodyText').value || '';
+      const file = document.getElementById('pdfFile').files[0];
+      if (!threadId || !to || !subject || !file) {
+        status.textContent = 'Missing required fields (threadId, to, subject, pdf).';
+        return;
+      }
+
+      // IMPORTANT: In production you must use Google OAuth to obtain an access token with gmail.modify scope.
+      const accessToken = prompt('Paste Google OAuth access token (gmail.modify)'); // placeholder for MVP
+      if (!accessToken) { status.textContent = 'No token provided.'; return; }
+
+      const base64 = await fileToBase64(file);
+      status.textContent = 'Creating draft…';
+
+      const resp = await fetch(BACKEND_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + accessToken
+        },
+        body: JSON.stringify({
+          threadId,
+          to,
+          subject,
+          bodyText,
+          attachment: { filename: file.name, contentType: file.type || 'application/pdf', base64 }
+        })
+      });
+      const json = await resp.json().catch(()=>({}));
+      if (!resp.ok) {
+        status.textContent = 'Failed: ' + resp.status + '\\n' + JSON.stringify(json, null, 2);
+        return;
+      }
+      status.textContent = 'Draft created ✓\\n' + JSON.stringify(json, null, 2);
+    };
+  </script>
+</body>
+</html>
+

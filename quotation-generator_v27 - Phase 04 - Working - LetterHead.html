@@ -702,7 +702,7 @@ select option { background: var(--panel-bg); }
 
 .doc-company-tagline {
   font-size: 10.5px;
-  color: var(--doc-text); opacity: 0.6;
+  color: var(--doc-text); opacity: 1;
   letter-spacing: 0.3px;
   line-height: 1.2;
 }
@@ -724,13 +724,13 @@ select option { background: var(--panel-bg); }
 .doc-ref-number {
   font-family: 'DM Mono', monospace;
   font-size: 11.5px;
-  color: var(--doc-text); opacity: 0.65;
+  color: var(--doc-text); opacity: 1;
   margin-top: 4px;
 }
 
 .doc-date-line {
   font-size: 11px;
-  color: var(--doc-text); opacity: 0.6;
+  color: var(--doc-text); opacity: 1;
   margin-top: 3px;
 }
 
@@ -766,7 +766,11 @@ select option { background: var(--panel-bg); }
 .doc-meta-value.small {
   font-size: 11px;
   font-weight: 400;
-  color: var(--doc-text); opacity: 0.72;
+  color: var(--doc-text); opacity: 1;
+}
+.doc-meta-value.small.doc-client-contact,
+.doc-meta-value.small.doc-client-gstin {
+  opacity: 1;
 }
 
 /* SUBJECT LINE */
@@ -778,7 +782,7 @@ select option { background: var(--panel-bg); }
   font-weight: 500;
 }
 
-.doc-subject span { color: #888; font-weight: 400; }
+.doc-subject span { color: #888; font-weight: 400; opacity: 1; }
 
 /* ITEMS TABLE */
 .doc-table-section {
@@ -911,7 +915,7 @@ body.exporting .no-export { display: none !important; }
 
 .doc-amount-words {
   font-size: 11.5px;
-  color: var(--doc-text); opacity: 0.72;
+  color: var(--doc-text); opacity: 1;
   line-height: 1.5;
 }
 
@@ -1003,7 +1007,7 @@ body.exporting .no-export { display: none !important; }
 .doc-terms-section {
   padding: 14px 36px;
   font-size: 11px;
-  color: var(--doc-text); opacity: 0.72;
+  color: var(--doc-text); opacity: 1;
   line-height: 1.5;
 }
 
@@ -1456,6 +1460,14 @@ body.exporting .no-export { display: none !important; }
   font-style: italic;
 }
 
+/* Hide placeholder-only text in export/print */
+body.exporting .doc-placeholder { display: none !important; }
+@media print { .doc-placeholder { display: none !important; } }
+
+#docPlaceSupply.doc-editable {
+  padding: 0; /* align with Amount in Words left edge */
+}
+
 .doc-date-picker {
   cursor: pointer;
   border-radius: 4px;
@@ -1665,6 +1677,9 @@ body.exporting .no-export { display: none !important; }
 .doc-letter-to {
   line-height: 1.6;
   /* font-size set by JS slider — children use em so entire block scales together */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .doc-letter-to-label {
   font-size: 0.85em; font-weight: 700;
@@ -1672,9 +1687,17 @@ body.exporting .no-export { display: none !important; }
   letter-spacing: 0.5px; margin-bottom: 2px;
 }
 .doc-letter-to-name  { font-size: 1em;    font-weight: 700; color: var(--doc-text); }
+.doc-letter-to-name,
+.doc-letter-to-addr,
+.doc-letter-to-contact {
+  align-self: flex-start;
+}
 .doc-letter-to-addr  { font-size: 0.88em; color: var(--doc-text); opacity: 0.7; white-space: pre-line; }
 .doc-letter-to-contact {
   font-size: 0.88em; color: var(--doc-text); opacity: 0.7; white-space: pre-line;
+}
+.doc-letter-to-contact.doc-client-contact {
+  opacity: 1;
 }
 .doc-letter-subject {
   /* font-size, text-align, font-weight set by JS based on showTo state */
@@ -3173,7 +3196,7 @@ body.exporting .no-export { display: none !important; }
         <div class="doc-letter-to" id="docLetterTo" style="display:none">
           <div class="doc-letter-to-label">To,</div>
           <div class="doc-letter-to-name doc-editable doc-client-picker doc-client-name" id="docLetterToName" contenteditable="true" spellcheck="false" data-edit-input="clientName" data-edit-mode="single" ondblclick="openClientPicker(event)" title="Double-click to pick saved client (or type)"></div>
-          <div class="doc-letter-to-contact" id="docLetterToContactName" style="display:none"></div>
+          <div class="doc-letter-to-contact doc-client-contact" id="docLetterToContactName" style="display:none" onclick="openContactPicker(event)" title="Click to select or add contact"></div>
           <div class="doc-letter-to-addr doc-editable" id="docLetterToAddr" contenteditable="true" spellcheck="false" data-edit-input="clientAddress" data-edit-mode="multi" title="Edit client address"></div>
           <div class="doc-letter-to-contact" id="docLetterToContact"></div>
           <div class="doc-letter-to-contact" id="docLetterToGstin" style="display:none"></div>
@@ -3221,7 +3244,7 @@ body.exporting .no-export { display: none !important; }
             <strong>Amount in Words:</strong>
             <span id="docAmtWords">—</span>
           </div>
-          <div style="margin-top:10px; font-size:10.5px; color:#888" id="docPlaceSupply"></div>
+          <div class="doc-editable" contenteditable="true" spellcheck="false" data-edit-input="placeOfSupply" data-edit-mode="single" style="margin-top:10px; font-size:10.5px; color:#888" id="docPlaceSupply" title="Edit place of supply"></div>
         </div>
         <table class="doc-totals-table">
           <tbody id="docTotalsBody"></tbody>
@@ -3499,7 +3522,7 @@ body.exporting .no-export { display: none !important; }
         </div>
         <div class="switch-row">
           <span class="switch-label">Show Product Images Footer</span>
-          <label class="switch"><input type="checkbox" id="showProductImages" onchange="syncProductImagesToDoc()"><span class="switch-slider"></span></label>
+          <label class="switch"><input type="checkbox" id="showProductImages" checked onchange="syncProductImagesToDoc()"><span class="switch-slider"></span></label>
         </div>
         <div class="form-group mt-8">
           <label>Section Label</label>
@@ -4706,7 +4729,13 @@ function initPreviewItemEditing() {
 
       if (field === 'qty' || field === 'rate' || field === 'gst' || field === 'disc') {
         const n = parseFloat(cur.replace(/,/g, ''));
-        setVal(field, Number.isFinite(n) ? n : 0);
+        const valNum = Number.isFinite(n) ? n : 0;
+        // Rate should be stored at max 2 decimals.
+        if (field === 'rate') {
+          setVal(field, Math.round(valNum * 100) / 100);
+        } else {
+          setVal(field, valNum);
+        }
       } else {
         setVal(field, cur);
       }
@@ -4836,7 +4865,9 @@ function openContactPicker(e) {
   if (e) e.stopPropagation();
   closeContactPicker();
 
-  const anchor = document.getElementById('docClientContact');
+  const anchor = (e && (e.currentTarget || e.target) && (e.currentTarget || e.target).getBoundingClientRect)
+    ? (e.currentTarget || e.target)
+    : document.getElementById('docClientContact');
   if (!anchor) return;
 
   const contacts = Array.isArray(state.contacts) ? state.contacts : [];
@@ -4898,11 +4929,12 @@ function openContactPicker(e) {
           openAddContactModal();
           return;
         }
+        // Selecting a contact should NOT delete other saved contacts.
+        // We only mark which contact is "active" for display.
         if (idx < 0) {
-          // leave contacts as-is
+          state.activeContactId = null;
         } else {
-          state.contacts = [JSON.parse(JSON.stringify(contacts[idx]))];
-          renderContacts();
+          state.activeContactId = contacts[idx]?.id || null;
         }
         syncDoc();
         closeContactPicker();
@@ -5021,7 +5053,8 @@ function openAddContactModal() {
     syncDoc();
     close();
 
-    if (!state.activeClientId && DM.isLoggedIn && DM.isLoggedIn() && state.activeCompanyId) {
+    // Ask to save ONLY when logged in (avoid prompting on login screen).
+    if (!state.activeClientId && DM && typeof DM.isLoggedIn === 'function' && DM.isLoggedIn() && state.activeCompanyId) {
       askYesNo('Save this client to database?').then(yes => { if (yes) saveClientToDb(); });
     }
   });
@@ -5104,6 +5137,9 @@ function initPreviewInlineEditing() {
 
         // Preview includes "Ref: ..." prefix
         if (inputId === 'refNo') txt = txt.replace(/^Ref:\s*/i, '');
+
+        // Preview includes "Place of Supply: ..." prefix
+        if (inputId === 'placeOfSupply') txt = txt.replace(/^Place of Supply:\s*/i, '');
 
         // Preview includes "Date: ..." prefix (input expects ISO yyyy-mm-dd)
         if (inputId === 'docDate') {
@@ -5844,6 +5880,14 @@ function _applyLetterheadMode(isLH) {
     if (el) el.style.display = isLH ? 'none' : '';
   });
 
+  // Product Images footer:
+  // Letterhead forces the footer hidden, but we do NOT overwrite the user's saved toggle.
+  const pi = document.getElementById('showProductImages');
+  if (pi) {
+    pi.disabled = isLH; // makes it clear it's forced off in letterhead
+    if (typeof syncProductImagesToDoc === 'function') syncProductImagesToDoc();
+  }
+
 }
 
 // ===== COMPANY NAME SIZE =====
@@ -5858,6 +5902,7 @@ function addContact(data = {}) {
   const contact = { id, salutation: data.salutation || 'Mr.', name: data.name || '', designation: data.designation || '', phone: data.phone || '', email: data.email || '' };
   state.contacts.push(contact);
   renderContacts();
+  syncDoc();
 }
 
 function removeContact(id) {
@@ -6107,9 +6152,32 @@ function loadState() {
   try {
     const saved = DM.getSession();
     if (!saved) return;
+    // When a company profile is active, do not let session restore overwrite
+    // settings that are owned by the company profile (profile should win after login).
+    const _profileOwned = new Set([
+      // Company
+      'companyName','companyTagline','companyGstin','companyAddress','companyPhone','companyEmail','companyWebsite',
+      'sellerState','showCompanyName','showTagline','companyNameFont','companyNameSize','taglineLetterSpacing','taglineWordSpacing',
+      // Footer
+      'footerLeft','footerTagline','footerRight',
+      // Banking
+      'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch','showBankDetails',
+      // Taxes / pricing
+      'gstType','gstRate','gstSlabs','currency','customTaxLabel','enableDiscount','discountPct','discountAmt','enableFreight','freightAmt',
+      // Document options
+      'showGstin','showShipTo','showNotes','showTerms','showAmtWords','terms',
+      // Design / template
+      'footerBgLinkAccent',
+      // Watermark
+      'enableLogoWatermark','watermarkOpacity','watermarkSize','watermarkRotation',
+      // Product images footer options
+      'showProductImages','productImagesLabel','productImgHeight','productImgPerRow',
+    ]);
+
     Object.keys(saved).forEach(id => {
       if (id.startsWith('_')) return;
       if (id === 'refNo') return;
+      if (state.activeCompanyId && _profileOwned.has(id)) return;
       const el = document.getElementById(id);
       if (!el) return;
       if (el.type === 'checkbox') el.checked = saved[id];
@@ -6168,6 +6236,9 @@ function loadState() {
     if (tls) document.getElementById('taglineLetterSpacingVal').textContent = tls.value + 'px';
     const tws = document.getElementById('taglineWordSpacing');
     if (tws) document.getElementById('taglineWordSpacingVal').textContent = tws.value + 'px';
+
+    // Ensure footer visibility matches restored toggle/docType
+    if (typeof syncProductImagesToDoc === 'function') syncProductImagesToDoc();
   } catch (e) { /* ignore */ }
 }
 
@@ -6224,6 +6295,9 @@ function syncProductImagesToDoc() {
 
   document.getElementById('productImgHeightVal').textContent = height + 'px';
   document.getElementById('docProductImagesLabel').textContent = label;
+
+  // Letterhead always hides product images footer (without changing user's toggle).
+  if (state.docType === 'letterhead') { section.style.display = 'none'; return; }
 
   if (!show || images.length === 0) { section.style.display = 'none'; return; }
 
@@ -6570,8 +6644,12 @@ function syncDoc() {
   // Client
   document.getElementById('docClientName').textContent = val('clientName') || '—';
   document.getElementById('docClientAddress').textContent = val('clientAddress');
-  // Multi-contacts
-  const contactLines = state.contacts
+  // Multi-contacts (optionally show only selected contact without deleting others)
+  const allContacts = Array.isArray(state.contacts) ? state.contacts : [];
+  const contactsForDoc = (state.activeContactId)
+    ? allContacts.filter(c => String(c.id) === String(state.activeContactId))
+    : allContacts;
+  const contactLines = contactsForDoc
     .filter(c => c.name || c.phone || c.email)
     .map(c => {
       const parts = [];
@@ -6666,15 +6744,17 @@ function syncDoc() {
       }
 
       // Contact person name with salutation (first contact, shown after company name)
-      const _firstContact = (state.contacts || []).find(ct => ct.name);
+      const _ctsAll = Array.isArray(state.contacts) ? state.contacts : [];
+      const _firstContact = (state.activeContactId
+        ? _ctsAll.find(ct => String(ct.id) === String(state.activeContactId))
+        : null
+      ) || _ctsAll.find(ct => ct.name);
       if (_lhToContactName) {
-        if (_firstContact?.name) {
-          const _sal = _firstContact.salutation ? _firstContact.salutation + ' ' : '';
-          _lhToContactName.textContent = _sal + _firstContact.name;
-          _lhToContactName.style.display = '';
-        } else {
-          _lhToContactName.style.display = 'none';
-        }
+        const _sal = _firstContact?.salutation ? _firstContact.salutation + ' ' : '';
+        const _label = _firstContact?.name ? (_sal + _firstContact.name) : 'CONTACT';
+        _lhToContactName.textContent = _label;
+        _lhToContactName.style.display = '';
+        _lhToContactName.classList.toggle('doc-placeholder', !_firstContact?.name);
       }
 
       // Address — keep placeholder for easy editing
@@ -6715,7 +6795,7 @@ function syncDoc() {
       }
       if (_subjInBodyTxt) {
         const _s = _subject || '';
-        _subjInBodyTxt.textContent = _s ? ('Re: ' + _s) : '—';
+        _subjInBodyTxt.textContent = _s || 'SUBJECT';
         _subjInBodyTxt.classList.toggle('doc-placeholder', !_s);
       }
     } else {
@@ -6729,7 +6809,7 @@ function syncDoc() {
       }
       if (_subjInBodyTxt) {
         const _s = _subject || '';
-        _subjInBodyTxt.textContent = _s || '—';
+        _subjInBodyTxt.textContent = _s || 'SUBJECT';
         _subjInBodyTxt.classList.toggle('doc-placeholder', !_s);
       }
     }
@@ -6738,7 +6818,7 @@ function syncDoc() {
     const _lhText = document.getElementById('docLetterText');
     if (_lhText) {
       const _body = document.getElementById('letterBody')?.value || '';
-      _lhText.textContent      = _body || '—';
+      _lhText.textContent      = _body || 'Dear Sir/Madam,';
       _lhText.style.fontFamily = _bodyFont;
       _lhText.style.fontSize   = _fBody;
       _lhText.classList.toggle('doc-placeholder', !_body);
@@ -6792,9 +6872,10 @@ function syncDoc() {
       const gstVal   = item.gst !== undefined && item.gst !== '' ? item.gst + '%' : '—';
       // When disc column is hidden but discount is applied, fold discount into unit price
       const _showDiscCol = state.showDiscountOnDoc && state.showItemDiscount;
-      const displayRate  = (!_showDiscCol && _discAmt > 0)
+      const displayRateRaw  = (!_showDiscCol && _discAmt > 0)
         ? _rate * (1 - _discAmt / 100)   // discounted unit price
         : _rate;                           // original rate
+      const displayRate = (Math.round(displayRateRaw * 100) / 100).toFixed(2);
       const discCell = _showDiscCol
         ? `<td class="center" style="font-size:11px;opacity:0.75">${_disc > 0 ? _disc + '%' : '—'}</td>`
         : '';
@@ -6843,7 +6924,16 @@ function syncDoc() {
   }
   const pos = val('placeOfSupply');
   const _posEl = document.getElementById('docPlaceSupply');
-  if (_posEl) _posEl.textContent = (state.docType === 'letterhead') ? '' : (pos ? 'Place of Supply: ' + pos : '');
+  if (_posEl) {
+    if (state.docType === 'letterhead') {
+      _posEl.textContent = '';
+      _posEl.style.display = 'none';
+    } else {
+      _posEl.style.display = '';
+      _posEl.textContent = pos ? ('Place of Supply: ' + pos) : 'Place of Supply: —';
+      _posEl.classList.toggle('doc-placeholder', !pos);
+    }
+  }
 
   // Bank Details
   const showBank = document.getElementById('showBankDetails').checked;
@@ -6874,8 +6964,17 @@ function syncDoc() {
   const showNotes = document.getElementById('showNotes').checked;
   const notesSection = document.getElementById('docNotesSection');
   const notesContent = val('notes');
-  notesSection.style.display = (showNotes && notesContent) ? '' : 'none';
-  document.getElementById('docNotesContent').textContent = notesContent;
+  notesSection.style.display = showNotes ? '' : 'none';
+  const notesEl = document.getElementById('docNotesContent');
+  if (notesEl) {
+    if (notesContent) {
+      notesEl.textContent = notesContent;
+      notesEl.classList.remove('doc-placeholder');
+    } else {
+      notesEl.textContent = '—';
+      notesEl.classList.add('doc-placeholder');
+    }
+  }
 
   // Footer
   const footerLeft = val('footerLeft') || companyName;
@@ -6913,6 +7012,10 @@ function syncDoc() {
     if (_footerGrp) _footerGrp.style.display = '';
     const _footer = document.getElementById('docFooter');
     if (_footer) _footer.style.display = '';
+  } else {
+    // Leaving letterhead: restore bottom sections (bank/terms/notes) visibility based on toggles.
+    const bottom = document.getElementById('docBottomSection');
+    if (bottom) bottom.style.display = '';
   }
 
   // Auto-annexure on overflow
@@ -7082,7 +7185,8 @@ function checkPageOverflow() {
     const _rate    = parseFloat(item.rate) || 0;
     const amount   = (parseFloat(item.qty) || 0) * _rate * (1 - _discAmt / 100);
     const gstVal   = item.gst !== undefined && item.gst !== '' ? item.gst + '%' : '—';
-    const displayRate = (!_showDiscCol && _discAmt > 0) ? _rate * (1 - _discAmt / 100) : _rate;
+    const displayRateRaw = (!_showDiscCol && _discAmt > 0) ? _rate * (1 - _discAmt / 100) : _rate;
+    const displayRate = Math.round(displayRateRaw * 100) / 100;
     const discCell = _showDiscCol ? `<td class="center" style="font-size:11px;opacity:0.75">${_disc > 0 ? _disc + '%' : '—'}</td>` : '';
     const gstCell  = _isDC ? '' : `<td class="center" style="font-size:11px;opacity:0.75">${gstVal}</td>`;
     return `<tr>
@@ -9374,10 +9478,15 @@ async function saveClientToDb() {
 
   const db = DM.getClients();
 
-  // GSTIN duplicate check
+  // GSTIN duplicate check:
+  // - If we're editing an existing client (activeClientId), allow same GSTIN on that record.
+  // - If GSTIN exists on some other client, offer to UPDATE that client instead of blocking.
+  let gstDup = null;
   if (gstin) {
-    const gstDup = db.find(c => (c.gstin || '').trim().toUpperCase() === gstin);
-    if (gstDup) { showNotification('GSTIN already exists for: ' + gstDup.name, 'error'); return; }
+    gstDup = db.find(c => (c.gstin || '').trim().toUpperCase() === gstin) || null;
+    if (gstDup && state.activeClientId && String(gstDup.id) === String(state.activeClientId)) {
+      gstDup = null; // same client, OK
+    }
   }
 
   // Name duplicate warning if no GSTIN
@@ -9408,6 +9517,51 @@ async function saveClientToDb() {
   };
 
   console.log('[CLIENT SAVE] company:', state.activeCompanyId, 'client:', client.name);
+
+  // If GSTIN exists on another record, treat this as an UPDATE/merge flow.
+  if (gstDup) {
+    const yes = await askYesNo(`GSTIN already exists for: ${gstDup.name}. Update that client instead?`);
+    if (!yes) return;
+
+    const merged = {
+      ...gstDup,
+      ...client,
+      // Merge contacts (dedupe by salutation+name+phone+email).
+      contacts: (() => {
+        const a = Array.isArray(gstDup.contacts) ? gstDup.contacts : [];
+        const b = Array.isArray(client.contacts) ? client.contacts : [];
+        const key = (ct) => [ct.salutation||'', ct.name||'', ct.phone||'', ct.email||''].map(s=>String(s).trim().toLowerCase()).join('|');
+        const map = new Map();
+        a.forEach(ct => map.set(key(ct), ct));
+        b.forEach(ct => map.set(key(ct), ct));
+        return Array.from(map.values());
+      })(),
+      // Prefer keeping existing ship addresses if any, otherwise take the new one.
+      shipAddresses: (Array.isArray(gstDup.shipAddresses) && gstDup.shipAddresses.length)
+        ? gstDup.shipAddresses
+        : (client.shipAddresses || []),
+    };
+
+    const ok = await DM.updateClientRecord(gstDup.id, merged);
+    if (!ok) return;
+
+    renderClientDb();
+    loadClientFromDb(gstDup.id);
+    showNotification('Client updated ✓');
+    return;
+  }
+
+  // Update existing active client (no GST conflict)
+  if (state.activeClientId) {
+    const ok = await DM.updateClientRecord(state.activeClientId, client);
+    if (!ok) return;
+    renderClientDb();
+    loadClientFromDb(state.activeClientId);
+    showNotification('Client updated ✓');
+    return;
+  }
+
+  // Create new client
   const newId = await DM.saveClientRecord(client);
   if (!newId) { showNotification('Failed to save client — open console for details', 'error'); return; }
 

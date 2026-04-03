@@ -1,0 +1,12 @@
+{
+  "name": "q-generator",
+  "private": true,
+  "description": "Local dev server — use http://localhost:5500 instead of file://",
+  "scripts": {
+    "start": "serve -l 5500 .",
+    "dev": "serve -l 5500 ."
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

@@ -1017,6 +1017,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load defaults first (company/bank/design), then session save
   loadDefaults();
   loadState();
+  applyTemplate(state.template || 'classic', false);
   // Always reset tax type to Auto on fresh load
   const gstTypeEl = document.getElementById('gstType');
   if (gstTypeEl) gstTypeEl.value = 'auto';
@@ -1928,9 +1929,16 @@ function syncPartnerLogosToDoc() {
   const logos = state.partnerLogos || [];
   const section = document.getElementById('docFooterLogos');
   const inner = document.getElementById('docFooterLogosInner');
-  if (logos.length === 0) { section.style.display = 'none'; return; }
+  const showChk = document.getElementById('showPartnerLogos');
+  const show = showChk ? showChk.checked : true;
+  if (!section || !inner) return;
+  if (!show || logos.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
   section.style.display = '';
   inner.style.justifyContent = state.partnerAlign === 'right' ? 'flex-end' : 'center';
+  inner.classList.toggle('partner-logos--dense', logos.length > 8);
   inner.innerHTML = logos.map(l => `<img class="doc-partner-logo" src="${l.data}" alt="">`).join('');
 }
 
@@ -2086,7 +2094,7 @@ function saveState() {
       const el = document.getElementById(id);
       if (el) saved[id] = el.value;
     });
-    const checkboxes = ['enableDiscount','enableFreight','showBankDetails','showGstin','showShipTo','showNotes','showTerms','showAmtWords','enableLogoWatermark','showProductImages','footerBgLinkAccent'];
+    const checkboxes = ['enableDiscount','enableFreight','showBankDetails','showGstin','showShipTo','showNotes','showTerms','showAmtWords','enableLogoWatermark','showProductImages','showPartnerLogos','footerBgLinkAccent'];
     checkboxes.forEach(id => {
       const el = document.getElementById(id);
       if (el) saved[id] = el.checked;
@@ -2096,6 +2104,7 @@ function saveState() {
     saved._partnerAlign = state.partnerAlign || 'center';
     saved._docType = state.docType;
     saved._colors = state.colors;
+    saved._template = state.template || 'classic';
     DM.saveSession(saved);
     showNotification('✓ Saved successfully');
   } catch (e) {
@@ -2126,7 +2135,7 @@ function loadState() {
       // Watermark
       'enableLogoWatermark','watermarkOpacity','watermarkSize','watermarkRotation',
       // Product images footer options
-      'showProductImages','productImagesLabel','productImgHeight','productImgPerRow',
+      'showProductImages','showPartnerLogos','productImagesLabel','productImgHeight','productImgPerRow',
     ]);
 
     Object.keys(saved).forEach(id => {
@@ -2192,8 +2201,13 @@ function loadState() {
     const tws = document.getElementById('taglineWordSpacing');
     if (tws) document.getElementById('taglineWordSpacingVal').textContent = tws.value + 'px';
 
+    if (saved._template) state.template = normalizeTemplateId(saved._template);
+    const _tplSel = document.getElementById('docTemplateSelect');
+    if (_tplSel) _tplSel.value = state.template || 'classic';
+
     // Ensure footer visibility matches restored toggle/docType
     if (typeof syncProductImagesToDoc === 'function') syncProductImagesToDoc();
+    if (typeof syncPartnerLogosToDoc === 'function') syncPartnerLogosToDoc();
   } catch (e) { /* ignore */ }
 }
 
@@ -3059,6 +3073,8 @@ function buildTotalsHTML(T, gstType, customTaxLabel, currency) {
 
 function checkPageOverflow() {
   const A4_HEIGHT  = 1123;
+  /** Subpixel / rounding slack so a page that visually fits is not treated as overflow (avoids clipping footer). */
+  const A4_FIT_EPS = 1;
   const A4_USABLE  = 1040; // conservative usable height per annexure page (header+footer take ~83px)
   const docPage    = document.getElementById('docPage');
   const isLH       = state.docType === 'letterhead';
@@ -3134,7 +3150,7 @@ function checkPageOverflow() {
       return h + blockH;
     }, 0);
 
-  if (contentH <= A4_HEIGHT) {
+  if (contentH <= A4_HEIGHT + A4_FIT_EPS) {
     // Everything fits — restore normal page 1 view
     const totSec  = document.getElementById('docTotalsSection');
     const tblWrap = document.getElementById('docTableBody');
@@ -3207,12 +3223,12 @@ function checkPageOverflow() {
   const makeContinuationHeader = (pageNum, totalPages) => `
     <div class="doc-annexure-header doc-continuation-header">
       <div>
-        <div class="doc-annexure-title" style="color:${accentColor}">Line items (continued)</div>
+        <div class="doc-annexure-title">Line items (continued)</div>
         <div class="doc-annexure-sub">${escHtml(docTypeLabel)} — Ref: ${escHtml(refNo)}</div>
       </div>
       <div class="doc-annexure-ref">
-        <div style="font-weight:600;font-size:12px;color:${accentColor}">${escHtml(companyName)}</div>
-        <div style="margin-top:4px">Page ${pageNum} of ${totalPages}</div>
+        <div>${escHtml(companyName)}</div>
+        <div>Page ${pageNum} of ${totalPages}</div>
       </div>
     </div>`;
 
@@ -3323,7 +3339,7 @@ function checkPageOverflow() {
   let k = 0;
   for (let trial = 1; trial <= n; trial++) {
     const h = restH + nonTbodyTableH + prefix[trial] + (trial < n ? CONT_MSG_H : 0);
-    if (h <= A4_HEIGHT) k = trial;
+    if (h <= A4_HEIGHT + A4_FIT_EPS) k = trial;
     else break;
   }
   if (k === 0 && n > 0) k = 1;
@@ -3401,8 +3417,10 @@ function checkPageOverflow() {
 
     const contPage = document.createElement('div');
     contPage.className = 'doc-page doc-annexure-page';
+    [...dp.classList].filter((c) => c.startsWith('tpl-')).forEach((c) => contPage.classList.add(c));
     contPage.style.setProperty('--doc-accent', accentColor);
     contPage.style.setProperty('--doc-text', textColor);
+    contPage.style.setProperty('--doc-header-bg', state.colors.header || '#f8f9fd');
     contPage.style.fontFamily = dp.style.fontFamily || '';
     contPage.innerHTML = `
       ${makeContinuationHeader(pageNum, totalPages)}
@@ -3658,8 +3676,10 @@ function _checkLetterheadOverflow() {
 
     const pg = document.createElement('div');
     pg.className = 'doc-page doc-lh-page';
+    [...docPage.classList].filter((c) => c.startsWith('tpl-')).forEach((c) => pg.classList.add(c));
     pg.style.setProperty('--doc-accent', accentColor);
     pg.style.setProperty('--doc-text',   textColor);
+    pg.style.setProperty('--doc-header-bg', state.colors.header || '#f8f9fd');
     // ── Clone the real page-1 header so continuation pages look identical ──
     const _origHeader = document.getElementById('docHeader');
     const _clonedHeader = _origHeader ? _origHeader.cloneNode(true) : null;
@@ -3748,25 +3768,36 @@ function applyColorHex(which, value) {
 }
 
 // ══════════════════════════════════════════════════════════
-// DOCUMENT LAYOUT (Classic only — removed Split / Sidebar / Stamp)
+// DOCUMENT LAYOUT — classic | executive | minimal (unknown / legacy ids → classic)
 // ══════════════════════════════════════════════════════════
+const DOCUMENT_TEMPLATE_IDS = ['classic', 'executive', 'minimal'];
+
 function normalizeTemplateId(_id) {
+  const s = String(_id || '').toLowerCase().trim();
+  if (DOCUMENT_TEMPLATE_IDS.indexOf(s) !== -1) return s;
   return 'classic';
 }
 
 function applyTemplate(_id, doSync = true) {
-  state.template = 'classic';
+  const tid = normalizeTemplateId(_id);
+  state.template = tid;
   const docPage = document.getElementById('docPage');
   if (!docPage) return;
   [...docPage.classList].filter((c) => c.startsWith('tpl-')).forEach((c) => docPage.classList.remove(c));
+  docPage.classList.add('tpl-' + tid);
   const hdr = document.getElementById('docHeader');
   if (hdr) hdr.removeAttribute('data-stamp');
+  const tplSel = document.getElementById('docTemplateSelect');
+  if (tplSel && tplSel.value !== tid) tplSel.value = tid;
   applyColors();
   if (doSync) syncDoc();
+  requestAnimationFrame(() => setTimeout(checkPageOverflow, 60));
 }
 
 function applyColors() {
   const docPage = document.getElementById('docPage');
+  if (!docPage) return;
+  const tpl = state.template || 'classic';
   const accent = state.colors.accent;
   const header = state.colors.header;
   const text = state.colors.text;
@@ -3778,12 +3809,57 @@ function applyColors() {
   // Derived vars: contrast text on accent / footer backgrounds
   docPage.style.setProperty('--doc-accent-text', isColorDark(accent) ? '#fff' : text);
   docPage.style.setProperty('--doc-footer-text', isColorDark(footerBg) ? '#fff' : accent);
-  document.querySelectorAll('.doc-table thead tr').forEach(tr => tr.style.background = accent);
-  document.querySelectorAll('.doc-header').forEach(el => el.style.borderBottomColor = accent);
-  document.querySelectorAll('.doc-meta').forEach(el => el.style.background = header);
-  document.querySelectorAll('.doc-meta-label, .doc-bank-label, .doc-terms-label, .doc-notes-label').forEach(el => el.style.color = accent);
-  document.querySelectorAll('.doc-doc-type, .doc-company-name-fallback').forEach(el => el.style.color = accent);
-  document.querySelectorAll('.doc-totals-table .grand-total td:first-child').forEach(el => el.style.borderTopColor = accent);
+  document.querySelectorAll('.doc-table thead tr').forEach(tr => {
+    tr.style.background = accent;
+  });
+  document.querySelectorAll('.doc-header').forEach(el => {
+    if (tpl === 'executive') {
+      el.style.background = accent;
+      el.style.borderBottom = 'none';
+    } else if (tpl === 'minimal') {
+      el.style.background = 'transparent';
+      el.style.borderBottom = '';
+    } else {
+      el.style.background = '';
+      el.style.borderBottom = '';
+      el.style.borderBottomColor = accent;
+      el.style.borderBottomWidth = '';
+      el.style.borderBottomStyle = '';
+    }
+  });
+  document.querySelectorAll('.doc-meta').forEach(el => {
+    if (tpl === 'minimal') {
+      el.style.background = `linear-gradient(180deg, ${header} 0%, #ffffff 72%)`;
+      el.style.borderBottom = '1px solid rgba(0,0,0,0.07)';
+    } else {
+      el.style.background = header;
+      el.style.borderBottom = '';
+    }
+  });
+  document.querySelectorAll('.doc-meta-label, .doc-bank-label, .doc-terms-label, .doc-notes-label').forEach(el => {
+    el.style.color = accent;
+  });
+  document.querySelectorAll('.doc-doc-type').forEach(el => {
+    if (tpl === 'executive' && el.closest('.doc-header')) {
+      el.style.color = '#ffffff';
+    } else {
+      el.style.color = accent;
+    }
+  });
+  document.querySelectorAll('.doc-company-name-fallback, .doc-company-name-with-logo').forEach(el => {
+    el.style.color = accent;
+    el.style.opacity = '';
+  });
+  document.querySelectorAll('.doc-title-meta .doc-ref-number, .doc-title-meta .doc-date-line').forEach(el => {
+    if (tpl === 'executive' && el.closest('.doc-header')) {
+      el.style.color = 'rgba(255,255,255,0.92)';
+    } else {
+      el.style.removeProperty('color');
+    }
+  });
+  document.querySelectorAll('.doc-totals-table .grand-total td:first-child').forEach(el => {
+    el.style.borderTopColor = accent;
+  });
   document.querySelectorAll('.doc-totals-table .grand-total td:last-child').forEach(el => {
     el.style.color = accent;
     el.style.borderTopColor = accent;
@@ -4557,7 +4633,7 @@ const DM = (() => {
       // Extensions (Grammarly, MS Editor, "Read" tools, etc.) inject content.js/read.js and
       // often log "Host validation failed" / "not in insights whitelist" on localhost — not from this app.
       if (/^localhost$|^127\.0\.0\.1$/i.test(location.hostname)) {
-        console.info('[QG] If login hangs, try InPrivate/Incognito with extensions off (browser extensions often break localhost).');
+        console.info('[QG] If login hangs, try InPrivate/Incognito with extensions off — see DEV-SERVER.txt (Host validation).');
       }
       // Show appropriate overlay immediately — no waiting for session check
       if (_isRecoveryUrl()) _showSetPasswordUI();
@@ -4899,6 +4975,7 @@ const DM = (() => {
       if (typeof renderPartnerLogosSidebar ==='function') renderPartnerLogosSidebar();
       if (typeof renderProductImagesSidebar==='function') renderProductImagesSidebar();
       if (typeof syncProductImagesToDoc    ==='function') syncProductImagesToDoc();
+      if (typeof syncPartnerLogosToDoc     ==='function') syncPartnerLogosToDoc();
     },
 
     // ── Quotations ──
@@ -5070,6 +5147,7 @@ function _getCompanyFieldsData() {
 
     // ── Brand / Partner Logos ──
     // partnerLogos stored in user_images
+    showPartnerLogos:   chk('showPartnerLogos'),
     partnerAlign:       state.partnerAlign || 'center',
 
     // ── Template ──
@@ -5197,6 +5275,9 @@ function _applyCompanyProfile(profile) {
   // NOTE: productImages and partnerLogos come from loadProfileFolder, not profile object
 
   // ── Brand / Partner Logos ──
+  if (profile.showPartnerLogos !== undefined && profile.showPartnerLogos !== null) {
+    setchk('showPartnerLogos', profile.showPartnerLogos);
+  }
   if (profile.partnerAlign !== undefined) {
     state.partnerAlign = profile.partnerAlign;
     const ac = document.getElementById('alignCenter');

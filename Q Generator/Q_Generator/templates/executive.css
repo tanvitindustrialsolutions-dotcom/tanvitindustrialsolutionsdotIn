@@ -1,0 +1,117 @@
+/**
+ * Executive — full accent band with a white “identity card” for logo & company.
+ * Document title and refs sit on the colored field in high-contrast light type.
+ */
+
+.doc-page.tpl-executive .doc-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'docinfo brand';
+  align-items: center;
+  padding: 14px 36px 14px;
+  gap: 16px;
+  background: var(--doc-accent);
+  border-bottom: none;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.14);
+}
+
+.doc-page.tpl-executive .doc-header-brand {
+  grid-area: brand;
+  min-width: 0;
+  max-width: 280px;
+  justify-self: end;
+  align-self: center;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow:
+    0 3px 5px rgba(0, 0, 0, 0.05),
+    0 10px 28px rgba(0, 0, 0, 0.1);
+}
+
+.doc-page.tpl-executive .doc-header-docinfo {
+  grid-area: docinfo;
+  justify-self: start;
+  align-self: center;
+  min-width: 0;
+}
+
+.doc-page.tpl-executive .doc-logo-area {
+  justify-content: flex-start;
+  min-height: auto;
+}
+
+/* Tagline: tint only; spacing from syncTaglineSpacing() */
+.doc-page.tpl-executive .doc-header-brand .doc-company-tagline {
+  color: var(--doc-text);
+  opacity: 0.65;
+}
+
+.doc-page.tpl-executive .doc-title-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  text-align: left;
+}
+
+/* Document title: inherits Document Font from #docPage; light shadow on accent field */
+.doc-page.tpl-executive .doc-doc-type {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.doc-page.tpl-executive .doc-title-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding-top: 2px;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Continuation — same accent band language */
+.doc-page.tpl-executive .doc-annexure-header.doc-continuation-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 10px;
+  padding: 10px 16px;
+  background: var(--doc-accent);
+  color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+}
+
+.doc-page.tpl-executive .doc-continuation-header .doc-annexure-title {
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.doc-page.tpl-executive .doc-continuation-header .doc-annexure-sub {
+  color: rgba(255, 255, 255, 0.88) !important;
+  opacity: 1 !important;
+  margin-top: 4px;
+}
+
+.doc-page.tpl-executive .doc-continuation-header .doc-annexure-ref {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.85) !important;
+  opacity: 1 !important;
+}
+
+.doc-page.tpl-executive .doc-continuation-header .doc-annexure-ref > div:first-child {
+  color: #fff !important;
+  opacity: 1 !important;
+  font-weight: 600;
+}
+
+.doc-page.tpl-executive .doc-continuation-header .doc-annexure-ref > div:last-child {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.78) !important;
+}

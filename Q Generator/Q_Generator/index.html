@@ -10,6 +10,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,400&family=Cormorant+Garamond:wght@300;600&family=Bebas+Neue&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="templates/classic.css">
+<link rel="stylesheet" href="templates/executive.css">
+<link rel="stylesheet" href="templates/minimal.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -71,28 +74,33 @@
 
   <!-- PREVIEW PANE -->
   <div class="preview-pane">
-    <div class="doc-page" id="docPage">
+    <div class="doc-page tpl-classic" id="docPage">
       <div class="doc-watermark" id="docWatermark" style="display:none; width:320px; height:320px; opacity:0.08;">
         <img id="docWatermarkImg" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:block;">
       </div>
 
-      <!-- DOCUMENT HEADER -->
+      <!-- DOCUMENT HEADER (structure shared; layout from templates/*.css via tpl-* on #docPage) -->
       <div class="doc-header" id="docHeader">
-        <div class="doc-logo-area">
-          <img class="doc-company-logo" id="docLogo" src="" alt="">
-          <div class="doc-logo-text-group">
-            <div class="doc-company-name-fallback" id="docCompanyFallback">YOUR COMPANY</div>
-            <div class="doc-company-name-with-logo" id="docCompanyWithLogo" style="display:none"></div>
-            <div class="doc-company-tagline" id="docTagline"></div>
+        <div class="doc-header-brand">
+          <div class="doc-logo-area">
+            <img class="doc-company-logo" id="docLogo" src="" alt="">
+            <div class="doc-logo-text-group">
+              <div class="doc-company-name-fallback" id="docCompanyFallback">YOUR COMPANY</div>
+              <div class="doc-company-name-with-logo" id="docCompanyWithLogo" style="display:none"></div>
+              <div class="doc-company-tagline" id="docTagline"></div>
+            </div>
           </div>
         </div>
-        <div class="doc-title-block">
-          <div class="doc-doc-type" id="docTypeLabel">QUOTATION</div>
-          <div class="doc-ref-number doc-editable" id="docRefNo" contenteditable="true" spellcheck="false" data-edit-input="refNo" data-edit-mode="single">Ref: —</div>
-          <div class="doc-date-line doc-date-picker" id="docDateLine" onclick="openInlineDatePicker('docDateLine','docDate')" title="Click to pick date">Date: —</div>
-          <div class="doc-date-line doc-date-picker" id="docValidLine" style="display:none" onclick="openInlineDatePicker('docValidLine','validUntil')" title="Click to pick valid until"></div>
+        <div class="doc-header-docinfo">
+          <div class="doc-title-block">
+            <div class="doc-doc-type" id="docTypeLabel">QUOTATION</div>
+            <div class="doc-title-meta">
+              <div class="doc-ref-number doc-editable" id="docRefNo" contenteditable="true" spellcheck="false" data-edit-input="refNo" data-edit-mode="single">Ref: —</div>
+              <div class="doc-date-line doc-date-picker" id="docDateLine" onclick="openInlineDatePicker('docDateLine','docDate')" title="Click to pick date">Date: —</div>
+              <div class="doc-date-line doc-date-picker" id="docValidLine" style="display:none" onclick="openInlineDatePicker('docValidLine','validUntil')" title="Click to pick valid until"></div>
+            </div>
+          </div>
         </div>
-
       </div>
 
       <!-- META -->
@@ -444,6 +452,10 @@
         <div class="section-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           Footer — Brand Logos
+        </div>
+        <div class="switch-row">
+          <span class="switch-label">Show brand logos on document</span>
+          <label class="switch"><input type="checkbox" id="showPartnerLogos" checked onchange="syncPartnerLogosToDoc(); requestAnimationFrame(() => setTimeout(checkPageOverflow, 50))"><span class="switch-slider"></span></label>
         </div>
         <div class="footer-hint">Logos of brands, certifications, or partners shown below the main footer.</div>
         <input type="file" id="partnerLogoInput" accept="image/*" multiple class="hidden" onchange="handlePartnerLogos(this)">
@@ -1103,6 +1115,21 @@
           <div class="color-group" style="display:flex; flex-direction:column; justify-content:flex-end;">
 
           </div>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="14" rx="1"/><path d="M7 8h10M7 12h6"/></svg>
+          Document layout
+        </div>
+        <div class="form-group">
+          <label>Template</label>
+          <select id="docTemplateSelect" onchange="applyTemplate(this.value)">
+            <option value="classic">Classic — logo left, details right</option>
+            <option value="executive">Executive — accent field + white logo card</option>
+            <option value="minimal">Minimal — editorial serif, hairlines, meta cards</option>
+          </select>
         </div>
 
         <div class="spacer"></div>

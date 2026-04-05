@@ -1,0 +1,172 @@
+/**
+ * Minimal — centered header, hairline accents, card-style meta.
+ * No font-size / font-family overrides: respects Document Font & company controls.
+ */
+
+.doc-page.tpl-minimal .doc-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  padding: 14px 36px 12px;
+  gap: 8px;
+  border-bottom: none;
+}
+
+.doc-page.tpl-minimal .doc-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--doc-accent);
+  opacity: 0.85;
+}
+
+.doc-page.tpl-minimal .doc-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  opacity: 0.45;
+  background: linear-gradient(90deg, transparent, var(--doc-accent), transparent);
+}
+
+.doc-page.tpl-minimal .doc-header-brand {
+  width: 100%;
+}
+
+.doc-page.tpl-minimal .doc-header-docinfo {
+  width: 100%;
+}
+
+.doc-page.tpl-minimal .doc-logo-area {
+  justify-content: center;
+  min-height: auto;
+  flex-wrap: wrap;
+}
+
+.doc-page.tpl-minimal .doc-logo-text-group {
+  align-items: center;
+  text-align: center;
+}
+
+/* Tagline: only tint; letter-spacing / word-spacing come from syncTaglineSpacing() */
+.doc-page.tpl-minimal .doc-header .doc-company-tagline {
+  color: var(--doc-text);
+  opacity: 0.62;
+  margin-top: 3px;
+}
+
+.doc-page.tpl-minimal .doc-title-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  padding-top: 0;
+}
+
+.doc-page.tpl-minimal .doc-title-meta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+  padding-top: 2px;
+}
+
+/* Ref / date: chrome only — inherits document font from #docPage */
+.doc-page.tpl-minimal .doc-title-meta .doc-ref-number,
+.doc-page.tpl-minimal .doc-title-meta .doc-date-line {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--doc-header-bg);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.doc-page.tpl-minimal .doc-meta {
+  gap: 12px;
+  padding: 18px 36px;
+}
+
+.doc-page.tpl-minimal .doc-meta-block {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-left: 3px solid var(--doc-accent);
+  border-radius: 8px;
+  padding: 12px 14px 14px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
+}
+
+/*
+ * Bill To + Our Details only (no Ship To): global #docOurDetailsBlock uses width:fit-content,
+ * which makes the right card narrower than the left. Force both columns to equal width and height.
+ */
+.doc-page.tpl-minimal #docMeta.doc-meta--no-ship {
+  align-items: stretch;
+}
+
+.doc-page.tpl-minimal #docMeta.doc-meta--no-ship .doc-meta-block {
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+  align-self: stretch;
+}
+
+.doc-page.tpl-minimal #docMeta.doc-meta--no-ship #docOurDetailsBlock {
+  max-width: none;
+}
+
+/* Continuation — layout + accent only */
+.doc-page.tpl-minimal .doc-annexure-header.doc-continuation-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-left: 3px solid var(--doc-accent);
+  background: var(--doc-header-bg);
+}
+
+.doc-page.tpl-minimal .doc-continuation-header .doc-annexure-title {
+  color: var(--doc-accent);
+}
+
+.doc-page.tpl-minimal .doc-continuation-header .doc-annexure-sub {
+  color: var(--doc-text);
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+.doc-page.tpl-minimal .doc-continuation-header .doc-annexure-ref {
+  text-align: left;
+  color: var(--doc-text);
+  opacity: 0.7;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(15, 23, 42, 0.12);
+  width: 100%;
+}
+
+.doc-page.tpl-minimal .doc-continuation-header .doc-annexure-ref > div:first-child {
+  color: var(--doc-accent);
+  opacity: 1;
+  font-weight: 600;
+}
+
+.doc-page.tpl-minimal .doc-continuation-header .doc-annexure-ref > div:last-child {
+  margin-top: 4px;
+}

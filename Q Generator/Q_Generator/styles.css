@@ -678,6 +678,7 @@ select option { background: var(--panel-bg); }
   min-height: 1123px;
   max-height: 1123px;      /* page never expands beyond A4 */
   overflow: hidden;        /* content that doesn't fit is clipped — overflow logic handles pagination */
+  box-sizing: border-box;
   background: #fff;
   box-shadow: 0 8px 40px rgba(0,0,0,0.5);
   font-family: 'Barlow', sans-serif;
@@ -694,6 +695,7 @@ select option { background: var(--panel-bg); }
 .doc-page > .doc-totals-section,
 .doc-page > .doc-main-annexure-note,
 .doc-page > .doc-annexure-header,
+.doc-page > .doc-footer-group,
 .doc-page > .doc-footer,
 .doc-page > .doc-continue-note,
 .doc-page > .doc-annex-tail {
@@ -712,14 +714,9 @@ select option { background: var(--panel-bg); }
   overflow: visible;
 }
 
-/* DOC HEADER */
+/* DOC HEADER — shell only; layout lives in templates/classic.css */
 .doc-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  padding: 28px 36px 20px;
-  border-bottom: 3px solid var(--doc-accent);
-  gap: 20px;
+  flex-shrink: 0;
 }
 
 .doc-logo-area {
@@ -1291,22 +1288,22 @@ body.exporting .doc-gst-frozen { display: inline-block !important; }
 }
 
 
-/* PARTNER LOGOS FOOTER */
+/* PARTNER LOGOS FOOTER — wraps to multiple rows; page overflow handled by checkPageOverflow */
 .doc-footer-logos {
   border-top: 1px solid #e0e4ef;
-  padding: 10px 36px;
+  padding: 8px 36px 10px;
   background: #f8f9fd;
-  /* Never let partner logos spill outside the A4 page */
-  max-height: 84px;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .doc-footer-logos-inner {
   display: flex;
   align-items: center;
+  align-content: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 12px 16px;
+  row-gap: 10px;
 }
 
 .doc-partner-logo {
@@ -1314,6 +1311,18 @@ body.exporting .doc-gst-frozen { display: inline-block !important; }
   max-width: 100px;
   object-fit: contain;
   opacity: 0.75;
+  flex: 0 0 auto;
+}
+
+/* Many logos: smaller tiles so more fit per row without blowing page height */
+.doc-footer-logos-inner.partner-logos--dense .doc-partner-logo {
+  max-height: 28px;
+  max-width: 76px;
+}
+
+.doc-footer-logos-inner.partner-logos--dense {
+  gap: 8px 10px;
+  row-gap: 8px;
 }
 
 .doc-footer-company {

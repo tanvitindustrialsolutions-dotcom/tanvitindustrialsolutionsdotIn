@@ -2,6 +2,10 @@
 
 Browser-based quotations, invoices, and related documents with PDF export and Supabase-backed profiles.
 
+## Where this project lives
+
+All app source for Q Generator is under **`Q Generator/Q_Generator/`** (this folder). The parent **`Q Generator/index.html`** redirects into this app. There is **no** Q Generator entry file at the workspace root (`BHANU`); keep new files for this product here or under `Q Generator/`, not outside.
+
 ## Deployment & custom domain
 
 See **[docs/GO_LIVE.md](docs/GO_LIVE.md)** for GitHub Pages, DNS, Supabase auth URLs, Razorpay hosted links, and launch checklist.

@@ -5750,8 +5750,8 @@ function updateSubscriptionAccountUI() {
 
   const badgeMap = {
     unknown: { pill: '…', top: '…' },
-    trial1: { pill: 'Trial · Phase 1', top: 'Trial' },
-    trial2_ok: { pill: 'Trial · Phase 2', top: 'Trial +' },
+    trial1: { pill: 'Trial · Phase 1', top: 'PROFILE (TRIAL)' },
+    trial2_ok: { pill: 'Trial · Phase 2', top: 'PROFILE (TRIAL +)' },
     trial2_need_billing: { pill: 'Payment due', top: 'Action' },
     pending_charge: { pill: 'Subscribed', top: 'Subscribed' },
     paid: { pill: 'Paid', top: 'Paid' },

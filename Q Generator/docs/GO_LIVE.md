@@ -17,7 +17,8 @@ This is the single checklist for **custom domain hosting**, **Supabase auth**, *
 
 ## 2. GitHub Pages + custom domain
 
-1. Repo **Settings → Pages**: source = branch (e.g. `main`), folder `/ (root)` or `/docs` (match how you deploy).
+1. Repo **Settings → Pages**: source = branch (e.g. `main`), folder `/ (root)` or `/docs` (match how you deploy).  
+   **If you use `/ (root)`:** GitHub serves **`index.html` from the repository root** only. Because the app files live under `Q Generator/`, the repo includes a **tiny root `index.html`** (at `BHANU/index.html` in the clone) that redirects to `Q%20Generator/index.html`. Without it, `https://user.github.io/repo-name/` returns **404**. You can also open the app directly at `.../repo-name/Q%20Generator/index.html`.
 2. **Custom domain:** enter e.g. `app.yourbrand.com`.
 3. Enable **Enforce HTTPS** (after DNS propagates and certificate is issued).
 4. In the repo **publishing root**, add a file named **`CNAME`** whose **only line** is your hostname, e.g.:

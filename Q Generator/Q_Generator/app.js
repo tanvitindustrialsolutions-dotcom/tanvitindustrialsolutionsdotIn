@@ -25,6 +25,26 @@ let state = {
 
 const CURRENCY_SYMBOLS = { INR: '₹', USD: '$', EUR: '€', GBP: '£', AED: 'AED ', SGD: 'SGD ' };
 
+/** Trial: 15d free → 15d free with autopay setup → paid (₹100/mo or ₹1000/yr). */
+const BILLING_TRIAL_PHASE1_DAYS = 15;
+const BILLING_TRIAL_PHASE2_DAYS = 15;
+const BILLING_PRICE_INR_MONTHLY = 100;
+const BILLING_PRICE_INR_YEARLY = 1000;
+
+/**
+ * Hosted payment links (primary): full HTTPS URLs from Razorpay Dashboard.
+ * Setup: see billing/BILLING_HOSTED_LINKS.txt — Subscriptions → Plans → share/link.
+ * Leave blank until you paste your two links.
+ */
+const BILLING_CONFIG = {
+  PAYMENT_LINK_MONTHLY: '',
+  PAYMENT_LINK_YEARLY: '',
+  /** Optional: Supabase Edge Function URL that returns Razorpay checkout JSON (advanced). */
+  CREATE_SUBSCRIPTION_FUNCTION: '',
+  /** Optional: only used by Edge Function / server; never required for hosted links. */
+  RAZORPAY_KEY_ID: '',
+};
+
 // Global helper — get value of any input/select by id
 function val(id) { return (document.getElementById(id) || {}).value || ''; }
 
@@ -1035,9 +1055,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initSettingsToggle();
   initSidebarResize();
 
+  initBillingUI();
+  initLegalDocsModal();
+  initPaymentShareModal();
+  if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+
   DM.init().then(() => {
     _restoreActiveCompanyProfile();
     renderCoProfileList();
+    if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
   });
 });
 
@@ -1328,6 +1354,8 @@ function _updateQuotSaveBtn() {
 
 async function saveCurrentQuotation() {
   try {
+  if (typeof DM !== 'undefined' && DM.assertCanSaveQuotation && !DM.assertCanSaveQuotation()) return;
+
   if (state.viewingLocked) {
     await updateQuotation(state.viewingLocked.id);
     return;
@@ -1946,6 +1974,8 @@ function syncPartnerLogosToDoc() {
 
 async function exportPDF() {
   const btn = document.getElementById('exportPDFBtn');
+  if (typeof DM !== 'undefined' && DM.assertCanExport && !DM.assertCanExport()) return;
+
   // If user is editing inside the preview, remove focus so focus ring
   // doesn't get baked into the exported canvas.
   const activeEl = document.activeElement;
@@ -2085,7 +2115,7 @@ function saveState() {
       'clientName','clientAddress','clientGstin','shipToAddress','shipToState','buyerState','sellerState',
       'refNo','docDate','validUntil','currency','docSubject','deliveryTime','paymentTerms','placeOfSupply',
       'notes','terms','footerLeft','footerTagline','footerRight',
-      'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch',
+      'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch','bankUpiVpa','bankUpiCustomAmount',
       'gstType','gstRate','gstSlabs','discountPct','discountAmt','freightAmt','customTaxLabel',
       'watermarkOpacity','watermarkSize','watermarkRotation','taglineLetterSpacing','taglineWordSpacing','productImagesLabel','productImgHeight','productImgPerRow',
     ];
@@ -2125,7 +2155,7 @@ function loadState() {
       // Footer
       'footerLeft','footerTagline','footerRight',
       // Banking
-      'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch','showBankDetails',
+      'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch','bankUpiVpa','showBankDetails',
       // Taxes / pricing
       'gstType','gstRate','gstSlabs','currency','customTaxLabel','enableDiscount','discountPct','discountAmt','enableFreight','freightAmt',
       // Document options
@@ -4251,6 +4281,160 @@ const DM = (() => {
   let _onLoginChain = Promise.resolve();
   /** Set when _onLoginBody finished successfully — avoids duplicate full loads for users with 0 companies (INITIAL_SESSION + getSession). */
   let _loginReadyUserId = null;
+  let _subscriptionRow = null;
+  /** @type {object|null} Row from public.user_profiles */
+  let _userProfileRow = null;
+  /** Email pending email-OTP after signUp (no session yet). */
+  let _pendingSignupEmail = null;
+
+  function _normalizePhoneInput(s) {
+    if (!s || typeof s !== 'string') return '';
+    return s.trim().replace(/\s+/g, '');
+  }
+  function _isValidE164Phone(s) {
+    return /^\+[1-9]\d{6,14}$/.test(_normalizePhoneInput(s));
+  }
+
+  async function _runEnsureUserProfile() {
+    if (!uid()) return;
+    try {
+      const { error: rpcErr } = await sb().rpc('ensure_user_profile');
+      if (rpcErr) console.warn('[PROFILE] ensure:', rpcErr.message);
+      const { data, error } = await sb().from('user_profiles').select('*').eq('user_id', uid()).maybeSingle();
+      if (error) console.warn('[PROFILE] load:', error.message);
+      else _userProfileRow = data;
+    } catch (e) {
+      console.warn('[PROFILE]', e);
+    }
+  }
+
+  function _computeBillingState(row) {
+    if (!row) {
+      return {
+        phase: 'unknown',
+        canExport: true,
+        canSaveQuotation: true,
+        canCloudWrite: true,
+        reason: null,
+        headline: '',
+        detail: '',
+        daysSinceStart: 0,
+      };
+    }
+    const t0 = new Date(row.trial_started_at).getTime();
+    const now = Date.now();
+    const dayMs = 86400000;
+    const d = Math.floor((now - t0) / dayMs);
+    const totalTrialDays = BILLING_TRIAL_PHASE1_DAYS + BILLING_TRIAL_PHASE2_DAYS;
+    const hasBilling = !!row.billing_setup_at;
+    const paidThrough = row.paid_through ? new Date(row.paid_through).getTime() : 0;
+    const paidOk = paidThrough > now;
+
+    if (d < BILLING_TRIAL_PHASE1_DAYS) {
+      const left = BILLING_TRIAL_PHASE1_DAYS - d;
+      return {
+        phase: 'trial1',
+        canExport: true,
+        canSaveQuotation: true,
+        canCloudWrite: true,
+        reason: null,
+        headline: 'Free trial',
+        detail: left <= 5
+          ? `First free period: ${left} day(s) left. After that, add autopay for 15 more free days (then ₹${BILLING_PRICE_INR_MONTHLY}/mo or ₹${BILLING_PRICE_INR_YEARLY}/yr).`
+          : '',
+        daysSinceStart: d,
+      };
+    }
+
+    if (d < totalTrialDays) {
+      if (hasBilling) {
+        const left2 = totalTrialDays - d;
+        return {
+          phase: 'trial2_ok',
+          canExport: true,
+          canSaveQuotation: true,
+          canCloudWrite: true,
+          reason: null,
+          headline: 'Extended trial',
+          detail: `Autopay is set. Billing starts after this period (${left2} day(s) remaining).`,
+          daysSinceStart: d,
+        };
+      }
+      const left2 = totalTrialDays - d;
+      return {
+        phase: 'trial2_need_billing',
+        canExport: false,
+        canSaveQuotation: false,
+        canCloudWrite: false,
+        reason: 'need_billing',
+        headline: 'Add autopay for 15 more free days',
+        detail: `Set up autopay (₹${BILLING_PRICE_INR_MONTHLY}/month or ₹${BILLING_PRICE_INR_YEARLY}/year). You are not charged until the extended trial ends. ${left2} day(s) left to add payment.`,
+        daysSinceStart: d,
+      };
+    }
+
+    if (paidOk || row.status === 'active') {
+      return {
+        phase: 'paid',
+        canExport: true,
+        canSaveQuotation: true,
+        canCloudWrite: true,
+        reason: null,
+        headline: 'Subscribed',
+        detail: '',
+        daysSinceStart: d,
+      };
+    }
+    if (hasBilling && row.status === 'trialing' && (row.provider_subscription_id || row.plan)) {
+      return {
+        phase: 'pending_charge',
+        canExport: true,
+        canSaveQuotation: true,
+        canCloudWrite: true,
+        reason: null,
+        headline: 'Subscription',
+        detail: 'Autopay is configured. If a charge fails, update your payment method in Razorpay.',
+        daysSinceStart: d,
+      };
+    }
+
+    return {
+      phase: 'locked',
+      canExport: false,
+      canSaveQuotation: false,
+      canCloudWrite: false,
+      reason: 'need_payment',
+      headline: 'Subscription required',
+      detail: `Subscribe at ₹${BILLING_PRICE_INR_MONTHLY}/month or ₹${BILLING_PRICE_INR_YEARLY}/year to export PDFs and use cloud save.`,
+      daysSinceStart: d,
+    };
+  }
+
+  function _showBillingWall(s) {
+    try {
+      if (typeof openBillingModalFromState === 'function') openBillingModalFromState(s);
+    } catch (e) {
+      console.warn('[BILLING] modal', e);
+      showNotification(s.detail || s.headline || 'Subscription required', 'error');
+    }
+  }
+
+  async function _loadSubscriptionRow() {
+    _subscriptionRow = null;
+    if (!uid()) return;
+    try {
+      const { error: ensErr } = await sb().rpc('ensure_user_subscription');
+      if (ensErr) console.warn('[BILLING] ensure:', ensErr.message);
+      const { data, error } = await sb().from('user_subscription').select('*').eq('user_id', uid()).maybeSingle();
+      if (error) {
+        console.warn('[BILLING] load:', error.message);
+        return;
+      }
+      _subscriptionRow = data;
+    } catch (e) {
+      console.warn('[BILLING]', e);
+    }
+  }
 
   // ── Supabase client (localStorage — no IndexedDB lock) ──
   function sb() {
@@ -4388,6 +4572,36 @@ const DM = (() => {
     btn.textContent = btn.dataset.mode === 'signup' ? 'Create Account' : 'Sign In';
   }
 
+  /** Same base URL as password reset — must stay in Supabase redirect allowlist. */
+  function _authEmailRedirectTo() {
+    try {
+      return `${window.location.origin}${window.location.pathname}`;
+    } catch {
+      return typeof window !== 'undefined' ? window.location.origin : '';
+    }
+  }
+
+  function _applyAuthSignupMode(isSignup) {
+    _hideAuthOtpStep();
+    document.querySelectorAll('.qg-auth-signup-extras').forEach((el) => {
+      el.style.display = isSignup ? 'block' : 'none';
+    });
+    const sub = document.getElementById('qg-auth-subtitle');
+    if (sub) sub.textContent = isSignup ? 'Create an account to sync your data' : 'Sign in to access your data';
+    const pass = document.getElementById('qg-auth-pass');
+    if (pass) pass.placeholder = isSignup ? 'Choose a password (min. 6 characters)' : 'Password';
+    if (!isSignup) {
+      const n = document.getElementById('qg-auth-name');
+      const ph = document.getElementById('qg-auth-phone');
+      const p2 = document.getElementById('qg-auth-pass2');
+      const t = document.getElementById('qg-auth-terms');
+      if (n) n.value = '';
+      if (ph) ph.value = '';
+      if (p2) p2.value = '';
+      if (t) t.checked = false;
+    }
+  }
+
   // ── Login (body; run only via _onLogin queue) ──
   async function _onLoginBody(user) {
     // Guard: same user already completed a load (including 0 companies — do not run twice from INITIAL_SESSION + getSession).
@@ -4418,10 +4632,12 @@ const DM = (() => {
       if (_defaults) _defaults._activeCompanyId = null;
     }
 
-    // ── PARALLEL: load companies + images at same time ──
+    // ── PARALLEL: load companies + images + billing row + user profile row ──
     const [_, imgRes] = await Promise.all([
       _loadCompanies(),
-      sb().from('user_images').select('data').eq('user_id', uid()).maybeSingle()
+      sb().from('user_images').select('data').eq('user_id', uid()).maybeSingle(),
+      _loadSubscriptionRow(),
+      _runEnsureUserProfile(),
     ]);
     if (imgRes?.error) console.warn('[LOGIN] user_images:', imgRes.error.message);
     _images = imgRes?.data?.data || {};
@@ -4457,6 +4673,7 @@ const DM = (() => {
     if (typeof syncDoc           === 'function') syncDoc();
     console.log('[LOGIN] step ui sync ok');
     _loginReadyUserId = user.id;
+    if (typeof updateBillingBanner === 'function') updateBillingBanner();
     console.log('[LOGIN] done. activeCompanyId:', state.activeCompanyId);
   }
 
@@ -4512,31 +4729,78 @@ const DM = (() => {
   }
 
   // ── UI helpers ──
+  function _hideAuthOtpStep() {
+    _pendingSignupEmail = null;
+    const main = document.getElementById('qg-auth-main-fields');
+    const otp = document.getElementById('qg-auth-otp-step');
+    if (main) main.style.display = '';
+    if (otp) otp.style.display = 'none';
+    const sub = document.getElementById('qg-auth-subtitle');
+    const btn = document.getElementById('qg-auth-submit');
+    const isUp = btn?.dataset.mode === 'signup';
+    if (sub) sub.textContent = isUp ? 'Create an account to sync your data' : 'Sign in to access your data';
+  }
+
+  function _showAuthOtpStep(email) {
+    _pendingSignupEmail = email;
+    const main = document.getElementById('qg-auth-main-fields');
+    const otp = document.getElementById('qg-auth-otp-step');
+    if (main) main.style.display = 'none';
+    if (otp) {
+      otp.style.display = 'block';
+      const o = document.getElementById('qg-auth-otp');
+      if (o) o.value = '';
+    }
+    const sub = document.getElementById('qg-auth-subtitle');
+    if (sub) sub.textContent = 'Confirm your email';
+  }
+
   function _showLoginUI() {
     if (document.getElementById('qg-login-overlay')) return;
     const el = document.createElement('div');
     el.id = 'qg-login-overlay';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px)';
-    el.innerHTML = `<div style="background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:32px;width:360px;max-width:90vw">
-      <div style="text-align:center;margin-bottom:24px">
-        <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.5px">Quotation Generator</div>
-        <div style="font-size:13px;color:#888;margin-top:4px">Sign in to access your data</div>
+    el.className = 'qg-login-overlay';
+    el.innerHTML = `<div class="qg-auth-card">
+      <div class="qg-auth-brand">
+        <div class="qg-auth-title">Quotation Generator</div>
+        <div id="qg-auth-subtitle" class="qg-auth-subtitle">Sign in to access your data</div>
       </div>
-      <div id="qg-auth-err" style="display:none;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;border:1px solid transparent"></div>
-      <input id="qg-auth-email" type="email" placeholder="Email" autocomplete="email"
-        style="width:100%;box-sizing:border-box;padding:10px 12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;margin-bottom:10px;outline:none">
-      <input id="qg-auth-pass" type="password" placeholder="Password" autocomplete="current-password"
-        style="width:100%;box-sizing:border-box;padding:10px 12px;background:#111;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;margin-bottom:16px;outline:none">
-      <button type="button" id="qg-auth-submit" data-mode="" onclick="DM._handleLogin()"
-        style="width:100%;padding:11px;background:#c8171e;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
-      <div style="text-align:right;margin-top:8px">
-        <span id="qg-forgot-link" onclick="DM._showForgotPassword()" style="font-size:12px;color:#888;cursor:pointer;text-decoration:underline">Forgot password?</span>
+      <div id="qg-auth-err" class="qg-auth-err" style="display:none"></div>
+      <div id="qg-auth-main-fields">
+        <input id="qg-auth-email" type="email" placeholder="Email" autocomplete="email" class="qg-auth-input">
+        <div class="qg-auth-signup-extras" style="display:none">
+          <input id="qg-auth-name" type="text" placeholder="Your name (optional)" autocomplete="name" class="qg-auth-input">
+          <input id="qg-auth-phone" type="tel" placeholder="Mobile (+country code, e.g. +919876543210)" autocomplete="tel" class="qg-auth-input">
+        </div>
+        <input id="qg-auth-pass" type="password" placeholder="Password" autocomplete="current-password" class="qg-auth-input">
+        <div class="qg-auth-signup-extras" style="display:none">
+          <input id="qg-auth-pass2" type="password" placeholder="Confirm password" autocomplete="new-password" class="qg-auth-input">
+          <label class="qg-auth-terms-label">
+            <input type="checkbox" id="qg-auth-terms" autocomplete="off">
+            <span>I agree to the <a href="#" class="qg-auth-legal-link" onclick="openLegalModal('terms');return false;">Terms of Service</a> and <a href="#" class="qg-auth-legal-link" onclick="openLegalModal('privacy');return false;">Privacy Policy</a>.</span>
+          </label>
+        </div>
+        <button type="button" id="qg-auth-submit" data-mode="" onclick="DM._handleLogin()" class="qg-auth-submit">Sign In</button>
+        <div class="qg-auth-forgot-wrap">
+          <span id="qg-forgot-link" class="qg-auth-forgot-link" onclick="DM._showForgotPassword()">Forgot password?</span>
+        </div>
+        <div id="qg-auth-toggle" class="qg-auth-toggle">
+          Don&apos;t have an account? <span onclick="DM._toggleSignUp()" class="qg-auth-toggle-link">Sign Up</span>
+        </div>
       </div>
-      <div id="qg-auth-toggle" style="text-align:center;margin-top:10px;font-size:13px;color:#888">
-        Don't have an account? <span onclick="DM._toggleSignUp()" style="color:#c8171e;cursor:pointer;font-weight:600">Sign Up</span>
+      <div id="qg-auth-otp-step" class="qg-auth-otp-step" style="display:none">
+        <p class="qg-auth-otp-hint">Enter the confirmation code from your email. If you only received a link, open it in this browser to confirm.</p>
+        <input id="qg-auth-otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="6-digit code" class="qg-auth-input">
+        <button type="button" id="qg-auth-otp-submit" class="qg-auth-submit" onclick="DM._handleSignupEmailOtp()">Verify email</button>
+        <div class="qg-auth-otp-links">
+          <span class="qg-auth-toggle-link" onclick="DM._resendSignupOtp()">Resend code</span>
+          <span class="qg-auth-otp-links-sep"> · </span>
+          <span class="qg-auth-toggle-link" onclick="DM._cancelAuthOtpStep()">Back</span>
+        </div>
       </div>
     </div>`;
     document.body.appendChild(el);
+    _applyAuthSignupMode(false);
   }
   function _hideLoginUI() { document.getElementById('qg-login-overlay')?.remove(); }
   function _decodeJwtPayload(token) {
@@ -4628,6 +4892,161 @@ const DM = (() => {
     refreshQuotations: () => { _quotCache = {}; },
     flushNow:          () => _scheduleFlush(),
 
+    getBillingState() {
+      const s = _computeBillingState(_subscriptionRow);
+      if (_subscriptionRow) {
+        s.dbPlan = _subscriptionRow.plan || null;
+        s.dbStatus = _subscriptionRow.status || null;
+        s.billingSetupAt = _subscriptionRow.billing_setup_at || null;
+        s.paidThrough = _subscriptionRow.paid_through || null;
+      } else {
+        s.dbPlan = null;
+        s.dbStatus = null;
+        s.billingSetupAt = null;
+        s.paidThrough = null;
+      }
+      return s;
+    },
+
+    getAccountProfile() {
+      if (!_user) return null;
+      return {
+        email: _user.email || '',
+        emailConfirmedAt: _user.email_confirmed_at || null,
+        fullName: String(_userProfileRow?.full_name ?? _user.user_metadata?.full_name ?? '').trim(),
+        phone: String(_userProfileRow?.phone ?? _user.user_metadata?.phone ?? '').trim(),
+        phoneVerifiedAt: _userProfileRow?.phone_verified_at || null,
+      };
+    },
+
+    async refreshAccountProfileForModal() {
+      if (!uid()) return;
+      try {
+        const { data: { user }, error } = await sb().auth.getUser();
+        if (user && !error) _user = user;
+        const { data } = await sb().from('user_profiles').select('*').eq('user_id', uid()).maybeSingle();
+        _userProfileRow = data;
+      } catch (e) {
+        console.warn('[PROFILE] refresh', e);
+      }
+    },
+
+    async saveAccountProfile() {
+      if (!uid()) return { ok: false, error: 'Not signed in' };
+      const fullName = document.getElementById('subscriptionAccountFullName')?.value?.trim() || '';
+      const phoneRaw = document.getElementById('subscriptionAccountPhone')?.value?.trim() || '';
+      const phoneNorm = _normalizePhoneInput(phoneRaw);
+      if (phoneNorm && !_isValidE164Phone(phoneNorm)) {
+        return { ok: false, error: 'Use international format with + and country code (e.g. +919876543210).' };
+      }
+      const { data: existing } = await sb().from('user_profiles').select('phone_verified_at').eq('user_id', uid()).maybeSingle();
+      const { error: uErr } = await sb().auth.updateUser({
+        data: {
+          full_name: fullName || null,
+          phone: phoneNorm || null,
+        },
+      });
+      if (uErr) return { ok: false, error: uErr.message };
+      await sb().rpc('ensure_user_profile');
+      const { error: pErr } = await sb().from('user_profiles').upsert({
+        user_id: uid(),
+        full_name: fullName || null,
+        phone: phoneNorm || null,
+        phone_verified_at: existing?.phone_verified_at ?? null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      if (pErr) return { ok: false, error: pErr.message };
+      const { data: { user } } = await sb().auth.getUser();
+      if (user) _user = user;
+      const { data: prof } = await sb().from('user_profiles').select('*').eq('user_id', uid()).maybeSingle();
+      _userProfileRow = prof;
+      return { ok: true };
+    },
+
+    assertCanExport() {
+      const s = _computeBillingState(_subscriptionRow);
+      if (s.canExport) return true;
+      _showBillingWall(s);
+      return false;
+    },
+    assertCanSaveQuotation() {
+      const s = _computeBillingState(_subscriptionRow);
+      if (s.canSaveQuotation) return true;
+      _showBillingWall(s);
+      return false;
+    },
+    assertCanCloudWrite() {
+      const s = _computeBillingState(_subscriptionRow);
+      if (s.canCloudWrite) return true;
+      _showBillingWall(s);
+      return false;
+    },
+    async refreshSubscription() {
+      await _loadSubscriptionRow();
+      if (typeof updateBillingBanner === 'function') updateBillingBanner();
+    },
+    async startBillingSetup(plan) {
+      const fn = BILLING_CONFIG.CREATE_SUBSCRIPTION_FUNCTION;
+      const raw = plan === 'yearly' ? BILLING_CONFIG.PAYMENT_LINK_YEARLY : BILLING_CONFIG.PAYMENT_LINK_MONTHLY;
+      const link = typeof raw === 'string' ? raw.trim() : '';
+      if (link) {
+        window.open(link, '_blank', 'noopener,noreferrer');
+        showNotification('Complete payment on Razorpay’s page. After it succeeds, use “I’ve paid — refresh” (or we’ll unlock automatically once your webhook updates the database).', 'ok');
+        return;
+      }
+      if (fn) {
+        try {
+          const { data: { session } } = await sb().auth.getSession();
+          if (!session?.access_token) throw new Error('Not signed in');
+          const r = await fetch(fn, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+            body: JSON.stringify({ plan }),
+          });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(j.error || j.message || r.statusText);
+          if (j.short_url && typeof j.short_url === 'string') {
+            window.open(j.short_url, '_blank', 'noopener,noreferrer');
+            showNotification('Complete payment in the new tab.', 'ok');
+            return;
+          }
+          if (j.key_id && j.subscription_id) {
+            if (typeof window.Razorpay !== 'function') {
+              await new Promise((resolve, reject) => {
+                const el = document.createElement('script');
+                el.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                el.onload = resolve;
+                el.onerror = () => reject(new Error('Could not load Razorpay'));
+                document.head.appendChild(el);
+              });
+            }
+            if (typeof window.Razorpay !== 'function') throw new Error('Razorpay Checkout failed to load');
+            const rz = new window.Razorpay({
+              key: j.key_id,
+              subscription_id: j.subscription_id,
+              name: 'Quotation Generator',
+              description: plan === 'yearly' ? 'Yearly' : 'Monthly',
+              handler() {
+                showNotification('Subscription authorized. Refreshing…', 'ok');
+                DM.refreshSubscription();
+              },
+            });
+            rz.open();
+            return;
+          }
+          throw new Error('Unexpected response from billing service');
+        } catch (e) {
+          console.error('[BILLING]', e);
+          showNotification(e.message || 'Billing setup failed', 'error');
+        }
+        return;
+      }
+      showNotification(
+        'Payment links not set. Paste PAYMENT_LINK_MONTHLY and PAYMENT_LINK_YEARLY in app.js (see billing/BILLING_HOSTED_LINKS.txt). Run the user_subscription migration in Supabase if you have not already.',
+        'error'
+      );
+    },
+
     // ── Auth ──
     async init() {
       // Extensions (Grammarly, MS Editor, "Read" tools, etc.) inject content.js/read.js and
@@ -4657,8 +5076,9 @@ const DM = (() => {
             await _onLogin(session.user);
           }
           if (event === 'SIGNED_OUT') {
-            _user=null; _loginReadyUserId=null; _companies=[]; _clients={}; _images={}; _session=null; _defaults=null; _quotCache={};
+            _user=null; _loginReadyUserId=null; _subscriptionRow=null; _userProfileRow=null; _companies=[]; _clients={}; _images={}; _session=null; _defaults=null; _quotCache={};
             _updatePill(); _showLoginUI();
+            if (typeof updateBillingBanner === 'function') updateBillingBanner();
           }
         } catch (e) {
           console.error('[AUTH] onAuthStateChange', event, e);
@@ -4681,14 +5101,55 @@ const DM = (() => {
       const errEl = document.getElementById('qg-auth-err');
       const btn   = document.getElementById('qg-auth-submit');
       const showErr = msg => { if(errEl){errEl.textContent=msg;errEl.style.cssText='display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(200,23,30,0.12);color:#f87171;border:1px solid rgba(200,23,30,0.3)';}};
-      if (!email||!pass) { showErr('Please enter email and password.'); return; }
-      if (btn) { btn.textContent='Please wait…'; btn.disabled=true; }
       const isSignUp = btn?.dataset.mode === 'signup';
+      if (!email) { showErr('Please enter your email.'); return; }
+      if (!pass) { showErr(isSignUp ? 'Please choose a password.' : 'Please enter your password.'); return; }
+      if (isSignUp) {
+        const terms = document.getElementById('qg-auth-terms');
+        if (!terms?.checked) { showErr('Please accept the Terms of Service and Privacy Policy.'); return; }
+        const p2 = document.getElementById('qg-auth-pass2')?.value || '';
+        if (pass !== p2) { showErr('Passwords do not match.'); return; }
+        if (pass.length < 6) { showErr('Password must be at least 6 characters.'); return; }
+        const phoneRaw = document.getElementById('qg-auth-phone')?.value?.trim() || '';
+        const phoneNorm = _normalizePhoneInput(phoneRaw);
+        if (!phoneNorm) { showErr('Please enter your mobile number with country code (e.g. +919876543210).'); return; }
+        if (!_isValidE164Phone(phoneNorm)) { showErr('Use international format: + and country code, then digits (6–15 digits total after +).'); return; }
+      }
+      if (btn) { btn.textContent='Please wait…'; btn.disabled=true; }
       try {
         if (isSignUp) {
-          const { error } = await sb().auth.signUp({ email, password:pass });
+          const fullName = document.getElementById('qg-auth-name')?.value?.trim() || '';
+          const phoneNorm = _normalizePhoneInput(document.getElementById('qg-auth-phone')?.value || '');
+          const meta = { phone: phoneNorm };
+          if (fullName) meta.full_name = fullName;
+          const { data: signData, error } = await sb().auth.signUp({
+            email,
+            password: pass,
+            options: {
+              emailRedirectTo: _authEmailRedirectTo(),
+              data: meta,
+            },
+          });
           if (error) throw error;
-          if (errEl) { errEl.style.cssText='display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.3)'; errEl.textContent='Account created! Check email to confirm.'; }
+          if (signData?.session?.user) {
+            if (errEl) errEl.style.display = 'none';
+            await _onLogin(signData.session.user);
+            if (btn) { btn.textContent='Create Account'; btn.disabled=false; }
+            return;
+          }
+          if (signData?.user && !signData.session) {
+            if (errEl) {
+              errEl.style.cssText='display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.3)';
+              errEl.textContent='Account created. Enter the confirmation code from your email (or use the link in the same message).';
+            }
+            _showAuthOtpStep(email);
+            if (btn) { btn.textContent='Create Account'; btn.disabled=false; }
+            return;
+          }
+          if (errEl) {
+            errEl.style.cssText='display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.3)';
+            errEl.textContent='Account created! Check your email to confirm (link or code, depending on your Supabase email settings).';
+          }
           if (btn) { btn.textContent='Create Account'; btn.disabled=false; }
         } else {
           const { data, error } = await sb().auth.signInWithPassword({ email, password:pass });
@@ -4709,24 +5170,98 @@ const DM = (() => {
       } catch(e) { showErr(e.message); if(btn){btn.textContent=isSignUp?'Create Account':'Sign In';btn.disabled=false;} }
     },
 
+    async _handleSignupEmailOtp() {
+      const email = _pendingSignupEmail || document.getElementById('qg-auth-email')?.value?.trim();
+      const raw = document.getElementById('qg-auth-otp')?.value || '';
+      const token = raw.replace(/\s+/g, '');
+      const errEl = document.getElementById('qg-auth-err');
+      const btn = document.getElementById('qg-auth-otp-submit');
+      const showErr = msg => {
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.style.cssText = 'display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(200,23,30,0.12);color:#f87171;border:1px solid rgba(200,23,30,0.3)';
+        }
+      };
+      if (!email || !token) { showErr('Enter the code from your email.'); return; }
+      if (btn) { btn.disabled = true; btn.textContent = 'Verifying…'; }
+      try {
+        const { data, error } = await sb().auth.verifyOtp({
+          email,
+          token,
+          type: 'signup',
+        });
+        if (error) throw error;
+        let u = data?.session?.user;
+        if (!u) {
+          const { data: gs } = await sb().auth.getSession();
+          u = gs?.session?.user;
+        }
+        if (!u) throw new Error('Verified but no session. Try signing in with your password.');
+        _hideAuthOtpStep();
+        if (errEl) errEl.style.display = 'none';
+        await _onLogin(u);
+      } catch (e) {
+        showErr(e.message || 'Invalid or expired code. Resend the code or open the confirmation link from your email.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Verify email'; }
+      }
+    },
+
+    async _resendSignupOtp() {
+      const email = _pendingSignupEmail;
+      const errEl = document.getElementById('qg-auth-err');
+      const showErr = msg => {
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.style.cssText = 'display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(200,23,30,0.12);color:#f87171;border:1px solid rgba(200,23,30,0.3)';
+        }
+      };
+      const showOk = msg => {
+        if (errEl) {
+          errEl.textContent = msg;
+          errEl.style.cssText = 'display:block;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:16px;background:rgba(34,197,94,0.12);color:#4ade80;border:1px solid rgba(34,197,94,0.3)';
+        }
+      };
+      if (!email) { showErr('No pending signup. Go back and create an account again.'); return; }
+      try {
+        const { error } = await sb().auth.resend({ type: 'signup', email });
+        if (error) throw error;
+        showOk('If your project supports it, a new code was sent. Check your inbox and spam folder.');
+      } catch (e) {
+        showErr(e.message || 'Could not resend. Use the confirmation link in your email or contact support.');
+      }
+    },
+
+    _cancelAuthOtpStep() {
+      _hideAuthOtpStep();
+      const errEl = document.getElementById('qg-auth-err');
+      if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+    },
+
     _toggleSignUp() {
-      const btn=document.getElementById('qg-auth-submit'), tog=document.getElementById('qg-auth-toggle');
+      const btn = document.getElementById('qg-auth-submit');
+      const tog = document.getElementById('qg-auth-toggle');
       const goingUp = btn?.dataset.mode !== 'signup';
-      if (btn) { btn.dataset.mode=goingUp?'signup':''; btn.textContent=goingUp?'Create Account':'Sign In'; }
-      if (tog) tog.innerHTML = goingUp
-        ? 'Already have an account? <span onclick="DM._toggleSignUp()" style="color:#c8171e;cursor:pointer;font-weight:600">Sign In</span>'
-        : 'Don\'t have an account? <span onclick="DM._toggleSignUp()" style="color:#c8171e;cursor:pointer;font-weight:600">Sign Up</span>';
+      if (btn) { btn.dataset.mode = goingUp ? 'signup' : ''; btn.textContent = goingUp ? 'Create Account' : 'Sign In'; }
+      if (tog) {
+        tog.innerHTML = goingUp
+          ? 'Already have an account? <span onclick="DM._toggleSignUp()" class="qg-auth-toggle-link">Sign In</span>'
+          : 'Don\'t have an account? <span onclick="DM._toggleSignUp()" class="qg-auth-toggle-link">Sign Up</span>';
+      }
+      _applyAuthSignupMode(!!goingUp);
     },
 
     async setFolder()   { /* no-op — cloud only */ },
 
     _showForgotPassword() {
+      _hideAuthOtpStep();
       // Swap login form to a single-field "reset" form inline
       const passEl   = document.getElementById('qg-auth-pass');
       const submitEl = document.getElementById('qg-auth-submit');
       const toggleEl = document.getElementById('qg-auth-toggle');
       const forgotEl = document.getElementById('qg-forgot-link');
       const errEl    = document.getElementById('qg-auth-err');
+      document.querySelectorAll('.qg-auth-signup-extras').forEach((x) => { x.style.display = 'none'; });
       if (passEl)   passEl.style.display   = 'none';
       if (forgotEl) forgotEl.style.display = 'none';
       if (toggleEl) toggleEl.style.display = 'none';
@@ -4768,6 +5303,7 @@ const DM = (() => {
       if (submitEl) { submitEl.textContent = 'Sign In'; submitEl.dataset.mode = ''; submitEl.onclick = () => DM._handleLogin(); }
       const emailEl = document.getElementById('qg-auth-email');
       if (emailEl)  emailEl.placeholder = 'Email';
+      _applyAuthSignupMode(false);
     },
 
     async _handleForgotPassword() {
@@ -4785,7 +5321,7 @@ const DM = (() => {
       if (btn) { btn.textContent = 'Sending…'; btn.disabled = true; }
       try {
         const { error } = await sb().auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + window.location.pathname,
+          redirectTo: _authEmailRedirectTo(),
         });
         if (error) throw error;
         showMsg('Reset link sent! Check your inbox (and spam folder).', true);
@@ -4830,6 +5366,7 @@ const DM = (() => {
 
     // Save or update a company profile. Pass id=null for new.
     async saveProfileData(id, profileData) {
+      if (!this.assertCanCloudWrite()) return null;
       const profile = { ...profileData };
       delete profile.id; delete profile.local_id; // never embed UUID inside JSON
 
@@ -4886,6 +5423,7 @@ const DM = (() => {
     },
 
     async saveClientRecord(cl) {
+      if (!this.assertCanCloudWrite()) return null;
       const companyId = cid();
       if (!companyId) { showNotification('No active company profile', 'error'); return null; }
       if (!uid())     { showNotification('Not signed in', 'error'); return null; }
@@ -4907,6 +5445,7 @@ const DM = (() => {
     },
 
     async updateClientRecord(id, cl) {
+      if (!this.assertCanCloudWrite()) return false;
       const { error } = await sb().from('clients')
         .update({ name:cl.name||'', gstin:cl.gstin||'', address:cl.address||'',
                   buyer_state:cl.buyerState||'', contacts:cl.contacts||[],
@@ -4998,6 +5537,7 @@ const DM = (() => {
     },
 
     async saveQuotation(snapshot) {
+      if (!this.assertCanSaveQuotation()) return null;
       const companyId = cid();
       if (!uid())       { showNotification('Not signed in','error'); return null; }
       if (!companyId)   { showNotification('No active company profile — save a profile first','error'); return null; }
@@ -5035,6 +5575,7 @@ const DM = (() => {
 
     async updateQuotation(id, snap) {
       if (!snap) return;
+      if (!this.assertCanSaveQuotation()) return;
       const clean = JSON.parse(JSON.stringify(snap));
       delete clean.logoData; delete clean.watermarkData;
       if (clean.partnerLogos)  clean.partnerLogos  = [];
@@ -5062,6 +5603,820 @@ const DM = (() => {
   };
 })();
 
+function openBillingModalFromState(s) {
+  const modal = document.getElementById('billingModal');
+  const title = document.getElementById('billingModalTitle');
+  const body = document.getElementById('billingModalBody');
+  const plans = document.getElementById('billingPlanButtons');
+  if (title) title.textContent = s.headline || 'Subscription';
+  if (body) {
+    let t = s.detail || '';
+    if (!t && s.phase === 'trial1') {
+      t = `Pricing after free phases: ₹${BILLING_PRICE_INR_MONTHLY}/month or ₹${BILLING_PRICE_INR_YEARLY}/year. You will set up autopay in phase 2.`;
+    }
+    if (!t && s.phase === 'paid') {
+      t = 'Your subscription is active. Use Refresh status if you recently completed payment.';
+    }
+    body.textContent = t;
+  }
+  const showPlans = s.reason === 'need_billing' || s.reason === 'need_payment' ||
+    s.phase === 'locked' || s.phase === 'trial2_need_billing' ||
+    s.phase === 'trial1' || s.phase === 'trial2_ok' || s.phase === 'pending_charge';
+  if (plans) plans.style.display = showPlans ? '' : 'none';
+  if (modal) {
+    modal.classList.add('is-open');
+    modal.style.display = 'flex';
+  }
+}
+
+function openSubscriptionAccountModal() {
+  const show = () => {
+    if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+    const m = document.getElementById('subscriptionAccountModal');
+    if (m) {
+      m.classList.add('is-open');
+      m.style.display = 'flex';
+    }
+  };
+  if (typeof DM !== 'undefined' && DM.refreshAccountProfileForModal) {
+    DM.refreshAccountProfileForModal().then(show).catch(show);
+  } else {
+    show();
+  }
+}
+
+function closeSubscriptionAccountModal() {
+  const m = document.getElementById('subscriptionAccountModal');
+  if (m) {
+    m.classList.remove('is-open');
+    m.style.display = 'none';
+  }
+}
+
+function updateBillingBanner() {
+  const bar = document.getElementById('billingBanner');
+  const txt = document.getElementById('billingBannerText');
+  const btn = document.getElementById('billingBannerBtn');
+  const ref = document.getElementById('billingBannerRefresh');
+  if (!bar || !txt) {
+    if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+    return;
+  }
+  if (typeof DM === 'undefined' || !DM.isLoggedIn || !DM.isLoggedIn() || typeof DM.getBillingState !== 'function') {
+    bar.classList.remove('visible');
+    bar.style.display = 'none';
+    if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+    return;
+  }
+  const s = DM.getBillingState();
+  const showBtn = s.phase === 'trial2_need_billing' || s.phase === 'locked';
+  const showRef = (s.phase === 'trial2_ok' || s.phase === 'pending_charge' || s.phase === 'paid' || showBtn);
+  if (btn) {
+    btn.style.display = showBtn ? '' : 'none';
+    btn.textContent = s.phase === 'locked' ? 'Subscribe' : 'Set up payment';
+  }
+  if (ref) ref.style.display = (showRef && (s.phase === 'trial2_need_billing' || s.phase === 'locked' || s.phase === 'trial2_ok')) ? '' : 'none';
+
+  let line = '';
+  if (s.phase === 'trial1' && s.detail) line = s.detail;
+  else if (s.phase === 'trial2_need_billing') line = s.detail || s.headline;
+  else if (s.phase === 'trial2_ok' || s.phase === 'pending_charge') line = s.detail || s.headline;
+  else if (s.phase === 'locked') line = s.detail || s.headline;
+  else if (s.phase === 'paid') line = '';
+
+  if (!line) {
+    bar.classList.remove('visible');
+    bar.style.display = 'none';
+  } else {
+    txt.textContent = line;
+    bar.classList.add('visible');
+    bar.style.display = 'flex';
+  }
+  if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+}
+
+function updateSubscriptionAccountUI() {
+  const badgeEl = document.getElementById('subscriptionAccountBadge');
+  const titleEl = document.getElementById('subscriptionAccountTitle');
+  const detailEl = document.getElementById('subscriptionAccountDetail');
+  const metaEl = document.getElementById('subscriptionAccountMeta');
+  const setupBtn = document.getElementById('subscriptionAccountSetupBtn');
+  const plansBtn = document.getElementById('subscriptionAccountPlansBtn');
+  const refreshBtn = document.getElementById('subscriptionAccountRefreshBtn');
+  const topBadge = document.getElementById('subscriptionTopbarBadge');
+  const profileSection = document.getElementById('subscriptionAccountProfileSection');
+  const emailInp = document.getElementById('subscriptionAccountEmail');
+  const emailStat = document.getElementById('subscriptionAccountEmailStatus');
+  const nameInp = document.getElementById('subscriptionAccountFullName');
+  const phoneInp = document.getElementById('subscriptionAccountPhone');
+  const phoneStat = document.getElementById('subscriptionAccountPhoneStatus');
+
+  if (!titleEl || !detailEl) return;
+
+  if (typeof DM === 'undefined' || !DM.isLoggedIn || !DM.isLoggedIn() || typeof DM.getBillingState !== 'function') {
+    if (profileSection) profileSection.style.display = 'none';
+    if (badgeEl) badgeEl.textContent = '—';
+    titleEl.textContent = 'Sign in to see subscription status';
+    detailEl.textContent = 'Cloud sync and subscription apply after you sign in.';
+    if (metaEl) metaEl.textContent = '';
+    if (setupBtn) setupBtn.style.display = 'none';
+    if (plansBtn) plansBtn.style.display = 'none';
+    if (refreshBtn) refreshBtn.style.display = 'none';
+    if (topBadge) topBadge.style.display = 'none';
+    return;
+  }
+
+  if (profileSection && typeof DM.getAccountProfile === 'function') {
+    const p = DM.getAccountProfile();
+    profileSection.style.display = '';
+    if (emailInp) emailInp.value = p?.email || '';
+    if (nameInp) nameInp.value = p?.fullName || '';
+    if (phoneInp) phoneInp.value = p?.phone || '';
+    if (emailStat) {
+      emailStat.textContent = p?.emailConfirmedAt
+        ? 'Email confirmed'
+        : 'Email not confirmed yet — check your inbox or enter the signup code.';
+    }
+    if (phoneStat) {
+      phoneStat.textContent = p?.phoneVerifiedAt
+        ? 'Mobile verified'
+        : 'Mobile not verified via SMS (add an SMS provider in Supabase to enable OTP).';
+    }
+  }
+
+  const s = DM.getBillingState();
+  const totalTrial = BILLING_TRIAL_PHASE1_DAYS + BILLING_TRIAL_PHASE2_DAYS;
+  const d = typeof s.daysSinceStart === 'number' ? s.daysSinceStart : 0;
+
+  const badgeMap = {
+    unknown: { pill: '…', top: '…' },
+    trial1: { pill: 'Trial · Phase 1', top: 'Trial' },
+    trial2_ok: { pill: 'Trial · Phase 2', top: 'Trial +' },
+    trial2_need_billing: { pill: 'Payment due', top: 'Action' },
+    pending_charge: { pill: 'Subscribed', top: 'Subscribed' },
+    paid: { pill: 'Paid', top: 'Paid' },
+    locked: { pill: 'Locked', top: 'Locked' },
+  };
+  const bm = badgeMap[s.phase] || badgeMap.unknown;
+
+  if (badgeEl) badgeEl.textContent = bm.pill;
+  if (topBadge) {
+    topBadge.textContent = bm.top;
+    topBadge.style.display = '';
+    topBadge.title = (s.headline || '') + (s.detail ? ' — ' + s.detail : '');
+    topBadge.classList.toggle('subscription-topbar-badge--warn', s.phase === 'trial2_need_billing' || s.phase === 'locked');
+  }
+
+  let title = s.headline || 'Subscription';
+  if (s.phase === 'trial1') title = 'Free trial — phase 1 of 2';
+  else if (s.phase === 'trial2_ok' || s.phase === 'trial2_need_billing') title = 'Extended trial — phase 2 of 2';
+  else if (s.phase === 'paid') title = 'Subscribed';
+  else if (s.phase === 'locked') title = 'Subscription required';
+  else if (s.phase === 'pending_charge') title = 'Subscription active';
+
+  titleEl.textContent = title;
+
+  let detail = '';
+  if (s.phase === 'trial1') {
+    const left1 = Math.max(0, BILLING_TRIAL_PHASE1_DAYS - d);
+    detail = `Day ${d + 1} of your ${totalTrial}-day free access. ${left1} day(s) left in phase 1, then add autopay for ${BILLING_TRIAL_PHASE2_DAYS} more free days before paid billing (₹${BILLING_PRICE_INR_MONTHLY}/mo or ₹${BILLING_PRICE_INR_YEARLY}/yr).`;
+  } else if (s.detail) {
+    detail = s.detail;
+  } else if (s.phase === 'paid') {
+    detail = 'Thank you — your subscription is active. Export and cloud save stay available.';
+  }
+  detailEl.textContent = detail;
+
+  if (metaEl) {
+    const parts = [];
+    if (s.dbStatus) parts.push('Status: ' + s.dbStatus);
+    if (s.dbPlan) parts.push('Plan: ' + s.dbPlan);
+    if (s.billingSetupAt) {
+      try {
+        parts.push('Autopay set: ' + new Date(s.billingSetupAt).toLocaleDateString(undefined, { dateStyle: 'medium' }));
+      } catch (_) {}
+    }
+    metaEl.textContent = parts.length ? parts.join(' · ') : '';
+  }
+
+  if (setupBtn) {
+    setupBtn.style.display = (s.phase === 'trial2_need_billing' || s.phase === 'locked') ? '' : 'none';
+  }
+  if (plansBtn) {
+    plansBtn.style.display = (s.phase === 'trial1' || s.phase === 'trial2_ok' || s.phase === 'pending_charge') ? '' : 'none';
+    plansBtn.textContent = s.phase === 'trial1' ? 'Plans & pricing' : 'Manage billing';
+  }
+  if (refreshBtn) {
+    refreshBtn.style.display = '';
+  }
+}
+
+function openLegalModal(which) {
+  const overlay = document.getElementById('legalDocsModal');
+  const heading = document.getElementById('legalDocsModalHeading');
+  const tabT = document.getElementById('legalDocsTabTerms');
+  const tabP = document.getElementById('legalDocsTabPrivacy');
+  const panelT = document.getElementById('legalDocsPanelTerms');
+  const panelP = document.getElementById('legalDocsPanelPrivacy');
+  if (!overlay || !panelT || !panelP) return;
+  const showPrivacy = which === 'privacy';
+  if (heading) heading.textContent = showPrivacy ? 'Privacy Policy' : 'Terms of Service';
+  if (tabT) {
+    tabT.classList.toggle('legal-docs-tab--active', !showPrivacy);
+    tabT.setAttribute('aria-selected', String(!showPrivacy));
+  }
+  if (tabP) {
+    tabP.classList.toggle('legal-docs-tab--active', showPrivacy);
+    tabP.setAttribute('aria-selected', String(showPrivacy));
+  }
+  panelT.hidden = showPrivacy;
+  panelP.hidden = !showPrivacy;
+  overlay.classList.add('is-open');
+  try {
+    (showPrivacy ? panelP : panelT).focus();
+  } catch (_) {}
+}
+
+function closeLegalModal() {
+  const overlay = document.getElementById('legalDocsModal');
+  if (overlay) overlay.classList.remove('is-open');
+}
+
+function initLegalDocsModal() {
+  const overlay = document.getElementById('legalDocsModal');
+  const closeBtn = document.getElementById('legalDocsModalClose');
+  const tabT = document.getElementById('legalDocsTabTerms');
+  const tabP = document.getElementById('legalDocsTabPrivacy');
+  const subTerms = document.getElementById('subscriptionAccountLegalTerms');
+  const subPrivacy = document.getElementById('subscriptionAccountLegalPrivacy');
+  if (closeBtn) closeBtn.addEventListener('click', closeLegalModal);
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeLegalModal();
+    });
+  }
+  if (tabT) tabT.addEventListener('click', () => openLegalModal('terms'));
+  if (tabP) tabP.addEventListener('click', () => openLegalModal('privacy'));
+  if (subTerms) subTerms.addEventListener('click', () => openLegalModal('terms'));
+  if (subPrivacy) subPrivacy.addEventListener('click', () => openLegalModal('privacy'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (overlay && overlay.classList.contains('is-open')) closeLegalModal();
+  });
+}
+
+window.openLegalModal = openLegalModal;
+window.closeLegalModal = closeLegalModal;
+
+function _normalizeUpiVpa(raw) {
+  return String(raw || '').trim();
+}
+
+/** Amount for UPI/QR only: optional custom field, else document grand total. */
+function getPaymentUpiAmount() {
+  const raw = (document.getElementById('bankUpiCustomAmount') || {}).value;
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    return calcTotals().grand;
+  }
+  const n = parseFloat(String(raw).replace(/,/g, '').trim());
+  if (!Number.isFinite(n) || n < 0) {
+    return calcTotals().grand;
+  }
+  return n;
+}
+
+/** True when the Banking "UPI / QR amount" field has a value (custom pay amount mode). */
+function _hasCustomUpiAmountEntered() {
+  const raw = (document.getElementById('bankUpiCustomAmount') || {}).value;
+  return raw !== undefined && raw !== null && String(raw).trim() !== '';
+}
+
+function buildPaymentShareText() {
+  const T = calcTotals();
+  const v = id => (document.getElementById(id) || {}).value || '';
+  const currency = v('currency') || 'INR';
+  const sym = CURRENCY_SYMBOLS[currency] || currency + ' ';
+  const amtStr = T.grand.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const refNo = v('refNo').trim();
+  const company = v('companyName').trim() || 'Our company';
+  const docLabel = DOC_LABELS[state.docType] || 'Document';
+  const upi = _normalizeUpiVpa(v('bankUpiVpa'));
+  const upiAmt = getPaymentUpiAmount();
+  const customRaw = (document.getElementById('bankUpiCustomAmount') || {}).value;
+  const hasCustomUpiAmt = customRaw !== undefined && customRaw !== null && String(customRaw).trim() !== '' &&
+    Number.isFinite(parseFloat(String(customRaw).replace(/,/g, ''))) && parseFloat(String(customRaw).replace(/,/g, '')) >= 0;
+  const lines = [];
+  lines.push(`Payment request — ${docLabel}`);
+  if (refNo && !_hasCustomUpiAmountEntered()) lines.push(`Reference: ${refNo}`);
+  lines.push(`Amount due: ${sym}${amtStr}`);
+  if (hasCustomUpiAmt && Math.abs(upiAmt - T.grand) > 0.005) {
+    lines.push(`UPI / QR amount: ${sym}${upiAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (for quick pay; document total above)`);
+  }
+  lines.push('');
+  lines.push('Bank transfer (NEFT / RTGS / IMPS):');
+  const bankName = v('bankName');
+  const bankAccName = v('bankAccName');
+  const bankAccNo = v('bankAccNo');
+  const bankAccType = v('bankAccType');
+  const bankIfsc = v('bankIfsc');
+  const bankSwift = v('bankSwift');
+  const bankBranch = v('bankBranch');
+  if (bankName) lines.push(`Bank: ${bankName}`);
+  if (bankAccName) lines.push(`Account name: ${bankAccName}`);
+  if (bankAccNo) lines.push(`Account number: ${bankAccNo}`);
+  if (bankAccType) lines.push(`Account type: ${bankAccType}`);
+  if (bankIfsc) lines.push(`IFSC: ${bankIfsc}`);
+  if (bankSwift) lines.push(`SWIFT: ${bankSwift}`);
+  if (bankBranch) lines.push(`Branch: ${bankBranch}`);
+  if (!bankName && !bankAccNo && !bankIfsc) {
+    lines.push('(Add bank details in the Banking panel.)');
+  }
+  if (upi) {
+    lines.push('');
+    lines.push(`UPI ID: ${upi}`);
+  }
+  lines.push('');
+  lines.push(`— ${company}`);
+  return lines.join('\n');
+}
+
+function buildUpiPayUri() {
+  const upi = _normalizeUpiVpa((document.getElementById('bankUpiVpa') || {}).value);
+  if (!upi) return '';
+  const v = id => (document.getElementById(id) || {}).value || '';
+  const pn = (v('bankAccName') || v('companyName') || 'Payee').slice(0, 99);
+  const ref = v('refNo').trim();
+  const tn = _hasCustomUpiAmountEntered()
+    ? (DOC_LABELS[state.docType] || '').slice(0, 80)
+    : [DOC_LABELS[state.docType] || '', ref].filter(Boolean).join(' ').slice(0, 80);
+  const am = Math.max(0, Number(getPaymentUpiAmount()) || 0).toFixed(2);
+  const parts = [
+    `pa=${encodeURIComponent(upi)}`,
+    `pn=${encodeURIComponent(pn)}`,
+    `am=${am}`,
+    'cu=INR',
+  ];
+  if (tn) parts.push(`tn=${encodeURIComponent(tn)}`);
+  return `upi://pay?${parts.join('&')}`;
+}
+
+async function copyPaymentDetailsToClipboard() {
+  const text = buildPaymentShareText();
+  try {
+    await navigator.clipboard.writeText(text);
+    showNotification('Payment details copied to clipboard', 'ok');
+  } catch (e) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showNotification('Payment details copied', 'ok');
+    } catch (e2) {
+      showNotification('Could not copy automatically', 'error');
+      try { window.prompt('Copy this text:', text); } catch (_) {}
+    }
+  }
+}
+
+function openPaymentUpiApp() {
+  const uri = buildUpiPayUri();
+  if (!uri) {
+    showNotification('Add an UPI ID in the Banking section first', 'error');
+    return;
+  }
+  window.location.href = uri;
+}
+
+function _setPaymentQrActionsVisible(show) {
+  const row = document.getElementById('paymentQrActions');
+  if (row) row.style.display = show ? 'flex' : 'none';
+}
+
+function _updatePaymentQrAmountLine() {
+  const el = document.getElementById('paymentQrAmountLine');
+  if (!el) return;
+  const uri = buildUpiPayUri();
+  if (!uri) {
+    el.style.display = 'none';
+    el.textContent = '';
+    return;
+  }
+  const currency = (document.getElementById('currency') || {}).value || 'INR';
+  const sym = CURRENCY_SYMBOLS[currency] || currency + ' ';
+  const upiAmt = getPaymentUpiAmount();
+  const fmt = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  el.textContent = `Amount in QR: ${sym}${fmt(upiAmt)}`;
+  el.style.display = '';
+}
+
+function openPaymentQrModal() {
+  const overlay = document.getElementById('paymentShareQrModal');
+  const host = document.getElementById('paymentQrContainer');
+  const noUpi = document.getElementById('paymentQrNoUpi');
+  if (!overlay || !host) return;
+  const uri = buildUpiPayUri();
+  host.innerHTML = '';
+  _setPaymentQrActionsVisible(false);
+  const amtLine = document.getElementById('paymentQrAmountLine');
+  if (amtLine) { amtLine.style.display = 'none'; amtLine.textContent = ''; }
+  if (!uri) {
+    if (noUpi) noUpi.style.display = '';
+    overlay.classList.add('is-open');
+    return;
+  }
+  if (noUpi) noUpi.style.display = 'none';
+  _updatePaymentQrAmountLine();
+  try {
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(host, { text: uri, width: 200, height: 200 });
+      _setPaymentQrActionsVisible(true);
+    } else {
+      showNotification('QR library not loaded. Check your network.', 'error');
+    }
+  } catch (err) {
+    console.warn('[Payment QR]', err);
+    showNotification('Could not build QR code', 'error');
+  }
+  overlay.classList.add('is-open');
+}
+
+function closePaymentQrModal() {
+  document.getElementById('paymentShareQrModal')?.classList.remove('is-open');
+  _setPaymentQrActionsVisible(false);
+  const amtLine = document.getElementById('paymentQrAmountLine');
+  if (amtLine) { amtLine.style.display = 'none'; amtLine.textContent = ''; }
+}
+
+function _getPaymentQrImageElement() {
+  const host = document.getElementById('paymentQrContainer');
+  if (!host) return null;
+  return host.querySelector('img') || host.querySelector('canvas');
+}
+
+function _wrapCanvasLines(ctx, text, maxWidth) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (ctx.measureText(test).width <= maxWidth) {
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      if (ctx.measureText(w).width > maxWidth) {
+        let chunk = w;
+        while (chunk.length > 1 && ctx.measureText(chunk).width > maxWidth) {
+          chunk = chunk.slice(0, -1);
+        }
+        lines.push(chunk);
+        line = w.slice(chunk.length) || '';
+        if (line && ctx.measureText(line).width > maxWidth) line = '';
+      } else {
+        line = w;
+      }
+    }
+  }
+  if (line) lines.push(line);
+  return lines.slice(0, 4);
+}
+
+function _canvasRoundPath(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+/**
+ * Composite PNG: modern card — company, amount, optional ref (when amount matches document), framed QR.
+ */
+function _buildBrandedPaymentQrCanvas(qrImg) {
+  const W = 480;
+  const OUT = 22;
+  const INNER = 36;
+  const ACCENT = '#C8171E';
+  const ACCENT_SOFT = 'rgba(200, 23, 30, 0.09)';
+  const TEXT = '#0f172a';
+  const MUTED = '#64748b';
+  const BORDER = '#e2e8f0';
+  const QR_BG = '#fafafa';
+
+  const company = ((document.getElementById('companyName') || {}).value || '').trim() || 'Your company';
+  const tag = ((document.getElementById('companyTagline') || {}).value || '').trim();
+  const ref = ((document.getElementById('refNo') || {}).value || '').trim();
+  const showRef = ref && !_hasCustomUpiAmountEntered();
+  const currency = (document.getElementById('currency') || {}).value || 'INR';
+  const sym = CURRENCY_SYMBOLS[currency] || '₹';
+  const amt = getPaymentUpiAmount();
+  const amtStr = amt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const upi = _normalizeUpiVpa((document.getElementById('bankUpiVpa') || {}).value);
+
+  const contentW = W - 2 * OUT - 2 * INNER;
+  const lineH = 30;
+  const qrSize = 208;
+  const qrPad = 18;
+  const amountCardH = 78;
+
+  const measure = document.createElement('canvas').getContext('2d');
+  measure.font = '600 24px "Barlow Condensed", system-ui, sans-serif';
+  const compLines = _wrapCanvasLines(measure, company, contentW);
+  const n = compLines.length;
+  const gapBeforeAmount = tag ? 40 : 18;
+  const scanBlock = upi ? 40 : 24;
+  const innerBody =
+    INNER +
+    22 +
+    n * lineH +
+    gapBeforeAmount +
+    amountCardH +
+    18 +
+    (showRef ? 44 : 0) +
+    4 +
+    (qrSize + qrPad + 20) +
+    scanBlock +
+    INNER +
+    8;
+  const totalH = OUT * 2 + innerBody;
+
+  const canvas = document.createElement('canvas');
+  const dpr = 2;
+  canvas.width = W * dpr;
+  canvas.height = totalH * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, totalH);
+  bgGrad.addColorStop(0, '#f1f5f9');
+  bgGrad.addColorStop(1, '#e2e8f0');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, totalH);
+
+  const cardW = W - OUT * 2;
+  const cardH = totalH - OUT * 2;
+  const cardR = 22;
+  ctx.save();
+  ctx.shadowColor = 'rgba(15, 23, 42, 0.12)';
+  ctx.shadowBlur = 36;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = '#ffffff';
+  _canvasRoundPath(ctx, OUT, OUT, cardW, cardH, cardR);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+  ctx.lineWidth = 1;
+  _canvasRoundPath(ctx, OUT, OUT, cardW, cardH, cardR);
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  let y = OUT + INNER;
+
+  ctx.fillStyle = ACCENT;
+  ctx.font = '700 9px system-ui, sans-serif';
+  ctx.fillText('UPI PAYMENT', W / 2, y);
+  y += 22;
+
+  ctx.fillStyle = TEXT;
+  ctx.font = '600 24px "Barlow Condensed", system-ui, sans-serif';
+  compLines.forEach((ln, i) => {
+    ctx.fillText(ln, W / 2, y + i * lineH);
+  });
+  y += compLines.length * lineH + (tag ? 10 : 14);
+
+  if (tag) {
+    ctx.fillStyle = MUTED;
+    ctx.font = '13px system-ui, sans-serif';
+    const tagOne = tag.length > 72 ? `${tag.slice(0, 69)}…` : tag;
+    ctx.fillText(tagOne, W / 2, y);
+    y += 26;
+  }
+
+  y += 4;
+  const amtBoxW = Math.min(contentW - 8, 280);
+  const amtBoxX = (W - amtBoxW) / 2;
+  ctx.fillStyle = ACCENT_SOFT;
+  _canvasRoundPath(ctx, amtBoxX, y - 6, amtBoxW, amountCardH, 14);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(200, 23, 30, 0.15)';
+  ctx.lineWidth = 1;
+  _canvasRoundPath(ctx, amtBoxX, y - 6, amtBoxW, amountCardH, 14);
+  ctx.stroke();
+
+  ctx.fillStyle = MUTED;
+  ctx.font = '600 10px system-ui, sans-serif';
+  ctx.fillText('Amount', W / 2, y + 12);
+  ctx.fillStyle = ACCENT;
+  ctx.font = '700 30px "Barlow Condensed", system-ui, sans-serif';
+  ctx.fillText(`${sym}${amtStr}`, W / 2, y + 48);
+  y += amountCardH + 18;
+
+  if (showRef) {
+    ctx.fillStyle = MUTED;
+    ctx.font = '600 9px system-ui, sans-serif';
+    ctx.fillText('REFERENCE', W / 2, y);
+    ctx.fillStyle = TEXT;
+    ctx.font = '600 14px ui-monospace, "Cascadia Code", Consolas, system-ui, sans-serif';
+    const refDraw = ref.length > 42 ? `${ref.slice(0, 39)}…` : ref;
+    ctx.fillText(refDraw, W / 2, y + 20);
+    y += 44;
+  }
+
+  y += 4;
+  const qx = (W - qrSize) / 2;
+  const bx = qx - qrPad;
+  const by = y - qrPad;
+  const bw = qrSize + qrPad * 2;
+  const bh = qrSize + qrPad * 2;
+  ctx.fillStyle = QR_BG;
+  _canvasRoundPath(ctx, bx, by, bw, bh, 16);
+  ctx.fill();
+  ctx.strokeStyle = BORDER;
+  ctx.lineWidth = 1.25;
+  _canvasRoundPath(ctx, bx, by, bw, bh, 16);
+  ctx.stroke();
+
+  ctx.drawImage(qrImg, qx, y, qrSize, qrSize);
+
+  y += qrSize + qrPad + 20;
+  ctx.fillStyle = MUTED;
+  ctx.font = '600 12px system-ui, sans-serif';
+  ctx.fillText('Scan with any UPI app', W / 2, y);
+  if (upi) {
+    ctx.font = '12px ui-monospace, "Cascadia Code", Consolas, system-ui, sans-serif';
+    ctx.fillStyle = TEXT;
+    ctx.fillText(upi, W / 2, y + 18);
+  }
+
+  ctx.fillStyle = MUTED;
+  ctx.font = '600 9px system-ui, sans-serif';
+  ctx.globalAlpha = 0.72;
+  ctx.fillText('Quotation & Invoice Generator', W / 2, totalH - OUT - 14);
+  ctx.globalAlpha = 1;
+
+  return canvas;
+}
+
+function downloadPaymentQrPng() {
+  const el = _getPaymentQrImageElement();
+  const host = document.getElementById('paymentQrContainer');
+  if (!el || !host?.innerHTML?.trim()) {
+    showNotification('Open the QR from Banking first', 'error');
+    return;
+  }
+
+  const finish = (qrImg) => {
+    try {
+      const canvas = _buildBrandedPaymentQrCanvas(qrImg);
+      canvas.toBlob(blob => {
+        if (!blob) {
+          showNotification('Could not create image', 'error');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const raw = ((document.getElementById('companyName') || {}).value || 'payment').trim();
+        const safe = raw.replace(/[^\w\u0900-\u0C7F\-]+/g, '_').replace(/_+/g, '_').slice(0, 48) || 'upi';
+        a.href = url;
+        a.download = `${safe}-payment-qr.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showNotification('Branded PNG downloaded', 'ok');
+      }, 'image/png');
+    } catch (e) {
+      console.warn('[Payment QR PNG]', e);
+      showNotification('Could not build image', 'error');
+    }
+  };
+
+  if (el.tagName === 'IMG') {
+    if (el.complete && el.naturalWidth) {
+      finish(el);
+    } else {
+      el.onload = () => finish(el);
+      el.onerror = () => showNotification('Could not load QR image', 'error');
+    }
+    return;
+  }
+  if (el.tagName === 'CANVAS') {
+    const img = new Image();
+    img.onload = () => finish(img);
+    img.onerror = () => showNotification('Could not export QR', 'error');
+    img.src = el.toDataURL('image/png');
+  }
+}
+
+function sharePaymentViaWhatsApp() {
+  const text = buildPaymentShareText();
+  const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+function initPaymentShareModal() {
+  const overlay = document.getElementById('paymentShareQrModal');
+  const closeBtn = document.getElementById('paymentShareQrClose');
+  if (closeBtn) closeBtn.addEventListener('click', closePaymentQrModal);
+  const dl = document.getElementById('paymentQrDownloadBtn');
+  if (dl) dl.addEventListener('click', () => downloadPaymentQrPng());
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closePaymentQrModal();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (overlay && overlay.classList.contains('is-open')) closePaymentQrModal();
+  });
+}
+
+window.copyPaymentDetailsToClipboard = copyPaymentDetailsToClipboard;
+window.openPaymentUpiApp = openPaymentUpiApp;
+window.openPaymentQrModal = openPaymentQrModal;
+window.sharePaymentViaWhatsApp = sharePaymentViaWhatsApp;
+window.downloadPaymentQrPng = downloadPaymentQrPng;
+
+function initBillingUI() {
+  const modal = document.getElementById('billingModal');
+  const closeBtn = document.getElementById('billingModalClose');
+  const mBtn = document.getElementById('billingPlanMonthly');
+  const yBtn = document.getElementById('billingPlanYearly');
+  const close = () => {
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.style.display = 'none';
+    }
+  };
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  if (mBtn) mBtn.addEventListener('click', async () => { await DM.startBillingSetup('monthly'); close(); });
+  if (yBtn) yBtn.addEventListener('click', async () => { await DM.startBillingSetup('yearly'); close(); });
+  const bb = document.getElementById('billingBannerBtn');
+  if (bb) {
+    bb.addEventListener('click', () => {
+      const s = DM.getBillingState();
+      openBillingModalFromState(s);
+    });
+  }
+  const br = document.getElementById('billingBannerRefresh');
+  if (br) {
+    br.addEventListener('click', async () => {
+      await DM.refreshSubscription();
+      if (typeof showNotification === 'function') showNotification('Status refreshed', 'ok');
+    });
+  }
+  const accSetup = document.getElementById('subscriptionAccountSetupBtn');
+  if (accSetup) {
+    accSetup.addEventListener('click', () => {
+      if (typeof closeSubscriptionAccountModal === 'function') closeSubscriptionAccountModal();
+      if (typeof openBillingModalFromState === 'function') openBillingModalFromState(DM.getBillingState());
+    });
+  }
+  const accPlans = document.getElementById('subscriptionAccountPlansBtn');
+  if (accPlans) {
+    accPlans.addEventListener('click', () => {
+      if (typeof closeSubscriptionAccountModal === 'function') closeSubscriptionAccountModal();
+      if (typeof openBillingModalFromState === 'function') openBillingModalFromState(DM.getBillingState());
+    });
+  }
+  const accRef = document.getElementById('subscriptionAccountRefreshBtn');
+  if (accRef) {
+    accRef.addEventListener('click', async () => {
+      await DM.refreshSubscription();
+      if (typeof showNotification === 'function') showNotification('Status refreshed', 'ok');
+    });
+  }
+  const subAccClose = document.getElementById('subscriptionAccountModalClose');
+  const subAccModal = document.getElementById('subscriptionAccountModal');
+  if (subAccClose) subAccClose.addEventListener('click', closeSubscriptionAccountModal);
+  if (subAccModal) {
+    subAccModal.addEventListener('click', (e) => {
+      if (e.target === subAccModal) closeSubscriptionAccountModal();
+    });
+  }
+  const profileSave = document.getElementById('subscriptionAccountProfileSaveBtn');
+  if (profileSave) {
+    profileSave.addEventListener('click', async () => {
+      if (typeof DM === 'undefined' || !DM.saveAccountProfile) return;
+      const r = await DM.saveAccountProfile();
+      if (r?.ok) {
+        if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+        if (typeof showNotification === 'function') showNotification('Profile saved', 'ok');
+      } else if (r?.error && typeof showNotification === 'function') {
+        showNotification(r.error, 'error');
+      }
+    });
+  }
+}
 
 
 // ── Shim: old code calls getClientDb()/saveClientDb() ──
@@ -5104,6 +6459,7 @@ function _getCompanyFieldsData() {
     bankIfsc:           v('bankIfsc'),
     bankSwift:          v('bankSwift'),
     bankBranch:         v('bankBranch'),
+    bankUpiVpa:         v('bankUpiVpa'),
     showBankDetails:    chk('showBankDetails'),
 
     // ── Taxes & Pricing ──
@@ -5217,6 +6573,7 @@ function _applyCompanyProfile(profile) {
   set('bankIfsc',    profile.bankIfsc);
   set('bankSwift',   profile.bankSwift);
   set('bankBranch',  profile.bankBranch);
+  set('bankUpiVpa',  profile.bankUpiVpa);
   setchk('showBankDetails', profile.showBankDetails);
 
   // ── Taxes & Pricing ──
@@ -5324,6 +6681,8 @@ function _updateCompanyPill(profileName) {
 }
 
 async function saveToCompanyProfile() {
+  if (typeof DM !== 'undefined' && DM.assertCanCloudWrite && !DM.assertCanCloudWrite()) return;
+
   const data = _getCompanyFieldsData();
   const name = data.companyName.trim();
   if (!name) { showNotification('Enter a company name first', 'error'); return; }
@@ -5536,7 +6895,7 @@ function newProfile() {
   // Clear company fields
   const companyFields = ['companyName','companyTagline','companyGstin','companyAddress','companyPhone',
     'companyEmail','companyWebsite','footerLeft','footerTagline','footerRight',
-    'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch','terms'];
+    'bankName','bankAccName','bankAccNo','bankAccType','bankIfsc','bankSwift','bankBranch','bankUpiVpa','bankUpiCustomAmount','terms'];
   companyFields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
   // Reset name font/size to defaults

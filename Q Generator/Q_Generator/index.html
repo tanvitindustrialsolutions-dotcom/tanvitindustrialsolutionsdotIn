@@ -24,6 +24,7 @@
       <div class="topbar-logo-mark">QG</div>
       <div class="topbar-title"><span class="title-long">Quotation <span>&</span> Invoice</span><span class="title-short" style="display:none">QG</span></div>
     </div>
+    <button type="button" id="subscriptionTopbarBadge" class="subscription-topbar-badge" style="display:none" onclick="openSubscriptionAccountModal()" title="Subscription status">—</button>
         <button id="workspacePill" class="company-pill" onclick="openCompanyProfiles()" title="Manage profiles &amp; storage">
       <svg id="workspacePillIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
       <span id="workspacePillText" class="company-pill-text">No Profile</span>
@@ -66,6 +67,14 @@
         <option value="letterhead">Letterhead</option>
       </select>
     </div>
+  </div>
+</div>
+
+<div id="billingBanner" class="billing-banner" style="display:none" role="status">
+  <div class="billing-banner-inner">
+    <span id="billingBannerText"></span>
+    <button type="button" class="btn btn-ghost billing-banner-btn" id="billingBannerBtn" style="display:none">Set up payment</button>
+    <button type="button" class="btn btn-ghost billing-banner-btn" id="billingBannerRefresh" style="display:none">I’ve paid — refresh</button>
   </div>
 </div>
 
@@ -1057,6 +1066,24 @@
           <label>Branch Name & Address</label>
           <input type="text" id="bankBranch" placeholder="Main Branch, City" oninput="syncDoc()">
         </div>
+        <div class="form-group">
+          <label>UPI ID (optional)</label>
+          <input type="text" id="bankUpiVpa" placeholder="yourbusiness@okaxis / paytm" oninput="syncDoc()" autocomplete="off" spellcheck="false" title="Virtual Payment Address for UPI QR and pay links">
+        </div>
+        <div class="form-group">
+          <label>UPI / QR amount (optional)</label>
+          <input type="text" id="bankUpiCustomAmount" inputmode="decimal" placeholder="Leave blank to use document grand total" autocomplete="off" spellcheck="false" title="Override amount encoded in UPI link and QR only; does not change the document">
+        </div>
+        <div class="payment-share-block">
+          <div class="payment-share-title">Share with client</div>
+          <p class="payment-share-hint">Copy bank details, open UPI, or show a QR code. UPI and QR use the amount above if set; otherwise the document grand total. Reference from the document when set.</p>
+          <div class="payment-share-actions">
+            <button type="button" class="btn btn-default payment-share-btn" onclick="copyPaymentDetailsToClipboard()" title="Copy text for email or SMS">Copy details</button>
+            <button type="button" class="btn btn-default payment-share-btn" id="paymentShareUpiBtn" onclick="openPaymentUpiApp()" title="Open a UPI app on your phone">Pay with UPI</button>
+            <button type="button" class="btn btn-default payment-share-btn" id="paymentShareQrBtn" onclick="openPaymentQrModal()" title="Show UPI QR code">UPI QR</button>
+            <button type="button" class="btn btn-default payment-share-btn" onclick="sharePaymentViaWhatsApp()" title="Share text via WhatsApp">WhatsApp</button>
+          </div>
+        </div>
         <div class="spacer"></div>
         <button class="btn btn-primary" style="width:100%" onclick="saveToCompanyProfile()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -1224,6 +1251,7 @@
           <button class="btn btn-ghost" style="font-size:11px" onclick="applyPreset('slate')">⚫ Slate Dark</button>
         </div>
       </div>
+
       <!-- QUOTATIONS PANEL -->
       <div class="panel-section" id="panel-quotations">
         <div class="quot-toolbar">
@@ -1402,7 +1430,138 @@
   </div>
 </div>
 
+<div id="billingModal" class="billing-modal-overlay" style="display:none" aria-modal="true" role="dialog">
+  <div class="billing-modal">
+    <button type="button" class="billing-modal-close" id="billingModalClose" aria-label="Close">&times;</button>
+    <h2 class="billing-modal-title" id="billingModalTitle">Subscription</h2>
+    <p class="billing-modal-body" id="billingModalBody"></p>
+    <div class="billing-plans" id="billingPlanButtons">
+      <button type="button" class="btn btn-primary" id="billingPlanMonthly">₹100 / month</button>
+      <button type="button" class="btn btn-default" id="billingPlanYearly">₹1000 / year</button>
+    </div>
+    <p class="billing-modal-hint">Checkout opens on Razorpay’s hosted page. Autopay starts after your extended free period ends — 15 days fully free, then 15 more free days once payment is set up, then billing.</p>
+  </div>
+</div>
+
+<div id="subscriptionAccountModal" class="subscription-account-modal-overlay" style="display:none" aria-modal="true" role="dialog" aria-labelledby="subscriptionAccountModalHeading">
+  <div class="subscription-account-modal">
+    <button type="button" class="billing-modal-close" id="subscriptionAccountModalClose" aria-label="Close">&times;</button>
+    <h2 class="billing-modal-title" id="subscriptionAccountModalHeading">Account &amp; subscription</h2>
+    <div id="subscriptionAccountProfileSection" class="subscription-account-profile" style="display:none">
+      <div class="subscription-account-profile-heading">Your profile</div>
+      <label class="subscription-account-label" for="subscriptionAccountEmail">Email</label>
+      <input type="text" id="subscriptionAccountEmail" class="subscription-account-input" readonly disabled autocomplete="email" />
+      <div id="subscriptionAccountEmailStatus" class="subscription-account-verification"></div>
+      <label class="subscription-account-label" for="subscriptionAccountFullName">Name</label>
+      <input type="text" id="subscriptionAccountFullName" class="subscription-account-input" maxlength="120" autocomplete="name" placeholder="Your name" />
+      <label class="subscription-account-label" for="subscriptionAccountPhone">Mobile</label>
+      <input type="tel" id="subscriptionAccountPhone" class="subscription-account-input" autocomplete="tel" placeholder="+country code and number" />
+      <div id="subscriptionAccountPhoneStatus" class="subscription-account-verification"></div>
+      <p class="subscription-account-profile-hint">Use international format (e.g. +919876543210). SMS verification can be added when your project has an SMS provider.</p>
+      <div class="subscription-account-profile-actions">
+        <button type="button" class="btn btn-primary" id="subscriptionAccountProfileSaveBtn">Save profile</button>
+      </div>
+    </div>
+    <div id="subscriptionAccountCard" class="subscription-account-card">
+      <div id="subscriptionAccountBadge" class="subscription-account-badge">—</div>
+      <div id="subscriptionAccountTitle" class="subscription-account-title">Sign in to see subscription status</div>
+      <p id="subscriptionAccountDetail" class="subscription-account-detail"></p>
+      <div id="subscriptionAccountMeta" class="subscription-account-meta"></div>
+      <div class="subscription-account-actions">
+        <button type="button" class="btn btn-primary" id="subscriptionAccountSetupBtn" style="display:none">Set up payment</button>
+        <button type="button" class="btn btn-default" id="subscriptionAccountPlansBtn" style="display:none">Choose plan</button>
+        <button type="button" class="btn btn-ghost" id="subscriptionAccountRefreshBtn" style="display:none">Refresh status</button>
+      </div>
+      <div class="subscription-account-legal-footer">
+        <button type="button" class="subscription-account-legal-btn" id="subscriptionAccountLegalTerms">Terms of Service</button>
+        <span class="subscription-account-legal-sep" aria-hidden="true">·</span>
+        <button type="button" class="subscription-account-legal-btn" id="subscriptionAccountLegalPrivacy">Privacy Policy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="legalDocsModal" class="legal-docs-modal-overlay" aria-modal="true" role="dialog" aria-labelledby="legalDocsModalHeading">
+  <div class="legal-docs-modal">
+    <button type="button" class="billing-modal-close" id="legalDocsModalClose" aria-label="Close">&times;</button>
+    <h2 class="billing-modal-title" id="legalDocsModalHeading">Terms of Service</h2>
+    <div class="legal-docs-modal-tabs" role="tablist">
+      <button type="button" class="legal-docs-tab legal-docs-tab--active" id="legalDocsTabTerms" role="tab" aria-selected="true" aria-controls="legalDocsPanelTerms">Terms of Service</button>
+      <button type="button" class="legal-docs-tab" id="legalDocsTabPrivacy" role="tab" aria-selected="false" aria-controls="legalDocsPanelPrivacy">Privacy Policy</button>
+    </div>
+    <div id="legalDocsPanelTerms" class="legal-docs-scroll" role="tabpanel" tabindex="0">
+      <p class="legal-docs-disclaimer"><strong>Important:</strong> This document is a general-purpose template for informational purposes only. It is not legal advice. Have it reviewed by qualified counsel before relying on it for your business or a public launch.</p>
+      <h3 class="legal-docs-h3">1. Agreement</h3>
+      <p class="legal-docs-p">By creating an account or using Quotation Generator (“the Service”), you agree to these Terms of Service. If you do not agree, do not use the Service.</p>
+      <h3 class="legal-docs-h3">2. Description of the Service</h3>
+      <p class="legal-docs-p">The Service is a web application for creating and managing quotations, invoices, and related business documents, including optional cloud sync when you sign in.</p>
+      <h3 class="legal-docs-h3">3. Accounts</h3>
+      <p class="legal-docs-p">You are responsible for maintaining the confidentiality of your login credentials and for activity under your account. You must provide accurate registration information (including a valid email and, where requested, contact details).</p>
+      <h3 class="legal-docs-h3">4. Trial, subscription, and billing</h3>
+      <p class="legal-docs-p">The Service may offer a multi-phase free trial (for example, an initial free period followed by an extended period after you add a payment method), then paid access. Paid plans may be billed periodically (for example, ₹100 per month or ₹1000 per year — amounts and currency as shown in the app at checkout).</p>
+      <p class="legal-docs-p">Payment processing may be handled by a third-party provider (such as Razorpay). You authorise charges according to the plan you select and the provider’s terms. Taxes, if applicable, may be added as required by law.</p>
+      <p class="legal-docs-p">You may cancel or change billing according to the options presented in the app and by your payment provider. Refunds, if any, are governed by applicable law and the policies of the payment provider.</p>
+      <h3 class="legal-docs-h3">5. Acceptable use</h3>
+      <p class="legal-docs-p">You will not misuse the Service, attempt to gain unauthorised access, interfere with other users, or use the Service for unlawful purposes. We may suspend or terminate access for violations.</p>
+      <h3 class="legal-docs-h3">6. Intellectual property</h3>
+      <p class="legal-docs-p">The Service, its branding, and its software are protected by intellectual property laws. You retain rights to content you enter; you grant us a limited licence to host and process that content solely to operate the Service.</p>
+      <h3 class="legal-docs-h3">7. Disclaimers and limitation of liability</h3>
+      <p class="legal-docs-p">The Service is provided “as is” to the maximum extent permitted by law. We do not warrant uninterrupted or error-free operation. To the extent permitted by law, we are not liable for indirect, incidental, or consequential damages, or for loss of profits or data. Our total liability shall not exceed the fees you paid us in the twelve months preceding the claim, or a nominal amount if none.</p>
+      <h3 class="legal-docs-h3">8. Changes</h3>
+      <p class="legal-docs-p">We may update these terms. Continued use after changes constitutes acceptance where permitted by law. Material changes may be communicated by email or in-app notice.</p>
+      <h3 class="legal-docs-h3">9. Governing law</h3>
+      <p class="legal-docs-p">These terms are governed by the laws of India, without regard to conflict-of-law rules, unless mandatory consumer protections in your jurisdiction require otherwise.</p>
+      <h3 class="legal-docs-h3">10. Contact</h3>
+      <p class="legal-docs-p">For questions about these terms, contact us at the support email published on our website or in the app (placeholder — replace with your real address before launch).</p>
+    </div>
+    <div id="legalDocsPanelPrivacy" class="legal-docs-scroll" role="tabpanel" tabindex="0" hidden>
+      <p class="legal-docs-disclaimer"><strong>Important:</strong> This Privacy Policy is a template. Review it with qualified counsel and adapt it to your actual data practices before a wide launch.</p>
+      <h3 class="legal-docs-h3">1. Who we are</h3>
+      <p class="legal-docs-p">This policy describes how Quotation Generator (“we”, “us”) handles personal information when you use our web application.</p>
+      <h3 class="legal-docs-h3">2. Information we collect</h3>
+      <p class="legal-docs-p">We may collect: account data (such as email, name, and phone number you provide); content you create (company profiles, clients, line items, documents, and files you upload); technical data (such as browser type, approximate location from IP, and logs for security); and billing-related identifiers when you subscribe (as processed by our payment partner).</p>
+      <h3 class="legal-docs-h3">3. How we use information</h3>
+      <p class="legal-docs-p">We use information to provide and improve the Service, authenticate you, sync your data, process payments, communicate about your account, comply with law, and protect the security and integrity of the Service.</p>
+      <h3 class="legal-docs-h3">4. Service providers</h3>
+      <p class="legal-docs-p">We use third-party infrastructure to run the Service. For example:</p>
+      <ul class="legal-docs-ul">
+        <li><strong>Supabase</strong> (or similar) for authentication, database storage, and related APIs. Data is processed according to their terms and your project configuration.</li>
+        <li><strong>Razorpay</strong> (or another payment processor) for subscription checkout and payment data. We do not store full card numbers on our servers; payment data is handled by the provider under their privacy policy.</li>
+      </ul>
+      <h3 class="legal-docs-h3">5. Cookies and local storage</h3>
+      <p class="legal-docs-p">We use browser storage (such as localStorage) to keep you signed in and remember preferences. You can clear site data in your browser, which may sign you out.</p>
+      <h3 class="legal-docs-h3">6. Retention</h3>
+      <p class="legal-docs-p">We retain information for as long as your account is active and as needed to provide the Service, comply with legal obligations, resolve disputes, and enforce agreements. You may request deletion of your account subject to legal and technical constraints.</p>
+      <h3 class="legal-docs-h3">7. Your rights</h3>
+      <p class="legal-docs-p">Depending on applicable law (including India’s Digital Personal Data Protection Act where relevant), you may have rights to access, correct, or delete personal data, or to withdraw consent. Contact us to exercise these rights; we will respond as required by law.</p>
+      <h3 class="legal-docs-h3">8. Security</h3>
+      <p class="legal-docs-p">We implement reasonable technical and organisational measures to protect data. No method of transmission over the Internet is 100% secure.</p>
+      <h3 class="legal-docs-h3">9. Children</h3>
+      <p class="legal-docs-p">The Service is not directed at children under applicable minimum ages. Do not provide personal information if you are not eligible to enter a contract in your jurisdiction.</p>
+      <h3 class="legal-docs-h3">10. Changes to this policy</h3>
+      <p class="legal-docs-p">We may update this policy. We will post the revised version in the app and update the “last updated” expectation by notice where appropriate.</p>
+      <h3 class="legal-docs-h3">11. Contact</h3>
+      <p class="legal-docs-p">For privacy requests or questions, contact us at the support email published on our website or in the app (placeholder — replace before launch).</p>
+    </div>
+  </div>
+</div>
+
+<div id="paymentShareQrModal" class="payment-share-qr-overlay" aria-modal="true" role="dialog" aria-labelledby="paymentShareQrHeading">
+  <div class="payment-share-qr-modal">
+    <button type="button" class="billing-modal-close" id="paymentShareQrClose" aria-label="Close">&times;</button>
+    <h2 class="billing-modal-title" id="paymentShareQrHeading">UPI QR code</h2>
+    <p class="payment-share-qr-sub">Scan with any UPI app. Reference appears when the QR amount matches your document total.</p>
+    <p id="paymentQrAmountLine" class="payment-share-qr-amount" style="display:none"></p>
+    <div id="paymentQrContainer" class="payment-qr-host"></div>
+    <p class="payment-share-qr-fallback" id="paymentQrNoUpi" style="display:none">Add an UPI ID above to generate a QR code.</p>
+    <div id="paymentQrActions" class="payment-qr-actions" style="display:none">
+      <button type="button" class="btn btn-primary payment-qr-download-full" id="paymentQrDownloadBtn">Download branded PNG</button>
+    </div>
+  </div>
+</div>
+
   <!-- ===== Third-party libs ===== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

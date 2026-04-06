@@ -1,0 +1,51 @@
+Quotation Generator — hosted payment links (Razorpay)
+======================================================
+
+For custom domain, DNS, Supabase redirect URLs, and full launch steps see:
+  docs/GO_LIVE.md
+
+The app opens Razorpay-hosted checkout in a new tab. You paste two URLs into
+app.js → BILLING_CONFIG → PAYMENT_LINK_MONTHLY and PAYMENT_LINK_YEARLY.
+
+Recommended: Razorpay Subscriptions (recurring autopay)
+-------------------------------------------------------
+1. Razorpay Dashboard → Subscriptions → Plans
+   - Create plan: ₹100 / billing cycle = monthly (or per your pricing).
+   - Create plan: ₹1000 / billing cycle = yearly.
+
+2. For each plan, use the option to create or copy a customer-facing link
+   (wording varies: “Create subscription link”, “Share”, or use Payment Links
+   tied to the plan — use whatever Razorpay shows for your account type).
+
+3. Copy the full HTTPS link for the monthly plan → PAYMENT_LINK_MONTHLY
+   Copy the full HTTPS link for the yearly plan  → PAYMENT_LINK_YEARLY
+
+4. Deploy app.js and test: Settings phase 2 → “Set up payment” → link opens.
+
+Unlocking the app after payment
+--------------------------------
+The browser cannot trust “payment completed” without your backend.
+
+Choose one:
+
+A) Webhook (production)
+   - Razorpay Webhooks → point to a Supabase Edge Function (or other server).
+   - On subscription.activated / payment.captured (per your flow), UPDATE
+     public.user_subscription for that customer:
+       billing_setup_at = now()
+       plan = 'monthly' | 'yearly'
+       provider_subscription_id = ...
+       status = 'trialing' or 'active'
+   - Map Razorpay customer to Supabase user (e.g. email or metadata you pass
+     in the subscription).
+
+B) Manual (testing only)
+   - In Supabase Table Editor → user_subscription, set billing_setup_at and
+     status for your test user’s row after they pay.
+
+SQL migration for user_subscription is under supabase/migrations/.
+
+Notes
+-----
+- Keep Razorpay Key Secret only on the server (webhook / Edge Function), never in app.js.
+- PAYMENT_LINK_* values are public URLs; safe to ship in the frontend.

@@ -1,6 +1,7 @@
 ﻿const fs = require("fs");
 const path = require("path");
 const base = __dirname;
+const CSS_VERSION = "20260421";
 
 const header = (active) => `<header class="site-header">
   <div class="header-inner">
@@ -62,7 +63,7 @@ const head = (title, desc) => `<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=${CSS_VERSION}">
 <link rel="icon" type="image/png" href="assets/logo-tanvit.png">
 </head>
 <body>`;

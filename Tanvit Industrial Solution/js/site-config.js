@@ -6,5 +6,11 @@
  * paste it below, then redeploy or refresh the site.
  */
 window.TanvitSiteConfig = {
-  web3formsAccessKey: "d180b514-75a7-40ed-8334-161b95cf046c"
+  web3formsAccessKey: "d180b514-75a7-40ed-8334-161b95cf046c",
+  // Set this to your deployed admin/API host to load live catalog updates.
+  // Example: "https://tanvit-admin.onrender.com/api/catalog"
+  catalogUrl: "",
+  // Production should keep this false.
+  // Set true in test/staging when you want to show operations notice in shop.
+  showOpsNotice: false
 };

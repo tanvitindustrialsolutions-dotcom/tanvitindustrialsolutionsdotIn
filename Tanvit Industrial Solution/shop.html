@@ -39,7 +39,7 @@
     <p class="lead">Explore consumables and machinery — including welding electrodes, machines, accessories, and cable. Use filters below. Listed prices are inclusive of taxes where shown (indicative). Use <strong>Get quotation</strong> on each product to email us, or read <a href="quotation.html">how to request a quote</a>.</p>
   </div>
   <div class="container section" style="padding-top:0">
-    <div class="notice">Purchasing is by <strong>quotation and direct contact</strong> — there is no shopping cart. For stock, GST invoices, and delivery, use <a href="contact.html">Contact</a> or <a href="quotation.html">Get quotation</a>. See <code>docs/OPERATIONS.md</code> for how we run the site.</div>
+    <div id="opsNotice" class="notice" hidden>Purchasing is by <strong>quotation and direct contact</strong> — there is no shopping cart. For stock, GST invoices, and delivery, use <a href="contact.html">Contact</a> or <a href="quotation.html">Get quotation</a>.</div>
     <div class="shop-toolbar">
       <div class="shop-filter-block">
         <label class="shop-filter-label" for="shopProductType">Product type</label>
@@ -87,7 +87,16 @@
     </div>
   </div>
   <div class="footer-bottom">© Tanvit Industrial Solutions. All rights reserved.</div>
-</footer><script src="js/store.js"></script>
+</footer><script src="js/site-config.js"></script>
+<script>
+(function () {
+  if (window.TanvitSiteConfig && window.TanvitSiteConfig.showOpsNotice) {
+    var el = document.getElementById("opsNotice");
+    if (el) el.hidden = false;
+  }
+})();
+</script>
+<script src="js/store.js"></script>
 <script src="js/catalog-loader.js"></script>
 <script src="js/shop.js"></script>
 </body></html>

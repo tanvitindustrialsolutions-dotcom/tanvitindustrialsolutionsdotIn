@@ -1,0 +1,39 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "Tanvit Industrial Solution/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy website files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          local-dir: "./Tanvit Industrial Solution/"
+          server-dir: "/public_html/"
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.cursor/**
+            **/server/**
+            **/admin/**
+            **/tools/**
+            **/docs/**
+            **/.env*
+            **/package.json
+            **/package-lock.json
+            **/build-pages.cjs
+            **/README.md
+            **/deploy.ps1

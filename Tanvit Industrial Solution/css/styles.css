@@ -1455,9 +1455,9 @@ main {
 
 .about-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-  max-width: 980px;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -1468,6 +1468,10 @@ main {
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 230px;
 }
 
 .about-card h3 {
@@ -1479,6 +1483,12 @@ main {
   color: var(--color-text-muted);
   font-size: 0.9375rem;
   line-height: 1.65;
+}
+
+@media (min-width: 760px) {
+  .about-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* Contact layout */

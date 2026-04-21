@@ -276,22 +276,36 @@ pages["about.html"] =
   ) +
   header("about") +
   `<main>
-  <div class="page-hero">
+  <div class="page-hero about-hero">
     <h1>About Tanvit</h1>
     <p class="lead">We are an industrial supply partner focused on consumables and machinery — helping you reduce downtime and keep standards high on the shop floor.</p>
   </div>
-  <div class="container section">
-    <div class="prose">
-      <h2>Who we are</h2>
-      <p><strong>Tanvit Industrial Solution</strong> serves manufacturers, fabricators, contractors, and maintenance teams that need dependable products without unnecessary complexity. Our name stands for a straightforward promise: quality-aligned sourcing, honest timelines, and responsive service.</p>
-      <h2>What we supply</h2>
-      <p>Our portfolio spans <strong>industrial consumables</strong> — such as welding electrodes and wires, grinding and cutting discs, lubricants, hand tools, and maintenance consumables — and <strong>machinery &amp; equipment</strong> including pumps, compressors, and related equipment for production and site use. Every category is curated so you can move from search to purchase with clear product information.</p>
-      <h2>How we work</h2>
-      <p>We combine a digital catalog with direct support. Browse and order online when you know exactly what you need; contact us when you want a recommendation, a bulk quotation, or a delivery schedule that matches your project. As we grow, we continue to invest in accurate listings, safe packaging, and partners who share our standards.</p>
-      <h2>Looking ahead</h2>
-      <p>We are expanding our range and strengthening logistics so Tanvit can grow with your organisation. For quotations and orders, we pair this catalog with direct support by phone and email. Whether you place your first order or your hundredth, we are here to be <em>A Trusted partner for Industry</em>.</p>
+  <section class="section about-section">
+    <div class="container">
+      <div class="section-title about-section-title">
+        <h2>A dependable industrial supply partner</h2>
+        <p>We support manufacturers, contractors, and maintenance teams with reliable sourcing, clear product communication, and responsive service.</p>
+      </div>
+      <div class="about-grid">
+        <article class="about-card">
+          <h3>Who we are</h3>
+          <p><strong>Tanvit Industrial Solution</strong> serves manufacturers, fabricators, contractors, and maintenance teams that need dependable products without unnecessary complexity. Our name stands for a straightforward promise: quality-aligned sourcing, honest timelines, and responsive service.</p>
+        </article>
+        <article class="about-card">
+          <h3>What we supply</h3>
+          <p>Our portfolio spans <strong>industrial consumables</strong> — such as welding electrodes and wires, grinding and cutting discs, lubricants, hand tools, and maintenance consumables — and <strong>machinery &amp; equipment</strong> including pumps, compressors, and related equipment for production and site use.</p>
+        </article>
+        <article class="about-card">
+          <h3>How we work</h3>
+          <p>We combine a digital catalog with direct support. Browse and order online when you know exactly what you need; contact us when you want recommendations, bulk quotations, or delivery timelines that match your project.</p>
+        </article>
+        <article class="about-card">
+          <h3>Looking ahead</h3>
+          <p>We are expanding our range and strengthening logistics so Tanvit can grow with your organisation. Whether it is your first order or your hundredth, we aim to be <em>A Trusted partner for Industry</em>.</p>
+        </article>
+      </div>
     </div>
-  </div>
+  </section>
 </main>` +
   footer +
   scripts +

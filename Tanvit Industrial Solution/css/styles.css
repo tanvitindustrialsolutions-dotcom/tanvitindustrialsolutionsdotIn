@@ -1440,9 +1440,10 @@ main {
 /* About page */
 .about-hero {
   background:
-    radial-gradient(circle at 18% 18%, rgba(180, 35, 42, 0.08), transparent 38%),
-    radial-gradient(circle at 82% 8%, rgba(184, 149, 74, 0.18), transparent 40%),
-    var(--color-bg-elevated);
+    radial-gradient(circle at 15% 20%, rgba(180, 35, 42, 0.18), transparent 42%),
+    radial-gradient(circle at 85% 5%, rgba(184, 149, 74, 0.28), transparent 44%),
+    linear-gradient(180deg, #fffaf5 0%, #f7f0e7 100%);
+  border-bottom: 1px solid rgba(184, 149, 74, 0.2);
 }
 
 .about-section {

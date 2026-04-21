@@ -12,5 +12,7 @@ window.TanvitSiteConfig = {
   catalogUrl: "",
   // Production should keep this false.
   // Set true in test/staging when you want to show operations notice in shop.
-  showOpsNotice: false
+  showOpsNotice: false,
+  // When true, all product prices are hidden site-wide (quote-only mode).
+  hideAllPrices: true
 };

@@ -141,7 +141,11 @@ function productMinOrder(p) {
 
 /** When true, UI must not show rupee price */
 function productHidePrice(p) {
-  return !!(p && p.hidePrice);
+  const forceHideAll =
+    typeof window !== "undefined" &&
+    window.TanvitSiteConfig &&
+    window.TanvitSiteConfig.hideAllPrices === true;
+  return forceHideAll || !!(p && p.hidePrice);
 }
 
 /** Minimum quantity for quotation (welding rods = 10 BOX) */

@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="templates/classic.css">
 <link rel="stylesheet" href="templates/executive.css">
 <link rel="stylesheet" href="templates/minimal.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -30,6 +30,14 @@
       <span id="workspacePillText" class="company-pill-text">No Profile</span>
     </button>
     <div class="topbar-actions">
+    <select id="themeSelect" class="theme-select" title="Theme">
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+      <option value="corporate">Corporate</option>
+      <option value="soft">Soft</option>
+    </select>
+    <a id="qgReturnNavBtn" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;text-decoration:none;margin-right:4px;display:none" title="Return to the register view you came from">Back to register</a>
+    <a href="portal.html" class="btn btn-ghost" style="font-size:11px;padding:6px 12px;text-decoration:none;margin-right:4px" title="Home — register or app">HOME</a>
     <button class="btn btn-default" onclick="saveToCompanyProfile()" title="Save current company details as a profile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
       Save Profile
@@ -685,6 +693,16 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" class="client-db-search" id="clientDbSearch" placeholder="Search saved clients…" oninput="renderClientDb()">
         </div>
+        <div class="form-row" style="margin-top:8px;margin-bottom:8px">
+          <div>
+            <select id="clientDbCategoryFilter" onchange="renderClientDb()">
+              <option value="all">All categories</option>
+              <option value="customer">Customer</option>
+              <option value="vendor">Vendor</option>
+              <option value="reseller">Reseller</option>
+            </select>
+          </div>
+        </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
           <button class="btn btn-ghost" style="flex:1;font-size:11px" onclick="exportClientDbExcel()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1256,10 +1274,13 @@
       <div class="panel-section" id="panel-quotations">
         <div class="quot-toolbar">
           <span style="font-size:12px;font-weight:600;color:var(--text-secondary);letter-spacing:0.3px;">SAVED QUOTATIONS</span>
-          <button class="quot-save-btn" id="quotSaveBtn" onclick="saveCurrentQuotation()">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <a href="register-accounts.html" class="btn btn-ghost" style="font-size:11px;padding:5px 10px;text-decoration:none" title="Document register — accounts &amp; contacts">Register</a>
+            <button class="quot-save-btn" id="quotSaveBtn" onclick="saveCurrentQuotation()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
             <span id="quotSaveBtnLabel">Save New</span>
           </button>
+          </div>
         </div>
         <div class="quot-search-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1272,6 +1293,25 @@
   </div><!-- end sidebar -->
 
 </div><!-- end app-body -->
+
+<!-- POST-LOGIN CHOOSER (Register vs App) -->
+<div id="qg-app-launcher" class="qg-app-launcher-overlay" style="display:none" aria-hidden="true" role="dialog" aria-labelledby="qg-launcher-title">
+  <div class="qg-app-launcher-card">
+    <div class="qg-app-launcher-brand">QG</div>
+    <h2 id="qg-launcher-title" class="qg-app-launcher-title">Welcome</h2>
+    <p class="qg-app-launcher-sub">Choose where to go next.</p>
+    <div class="qg-app-launcher-actions">
+      <button type="button" class="btn btn-default qg-app-launcher-btn" id="qg-launcher-register">
+        <span class="qg-launcher-btn-label">Document register</span>
+        <span class="qg-launcher-btn-hint">All saved documents across companies</span>
+      </button>
+      <button type="button" class="btn btn-primary qg-app-launcher-btn" id="qg-launcher-app">
+        <span class="qg-launcher-btn-label">Open app</span>
+        <span class="qg-launcher-btn-hint">Editor, preview &amp; PDF</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- NOTIFICATION -->
 <div class="notification" id="notification"></div>
@@ -1461,6 +1501,17 @@
       <div class="subscription-account-profile-actions">
         <button type="button" class="btn btn-primary" id="subscriptionAccountProfileSaveBtn">Save profile</button>
       </div>
+      <div class="subscription-account-profile-heading subscription-account-password-heading">Change password</div>
+      <p class="subscription-account-profile-hint">For accounts that use email and password. If you are signed out, use <strong>Forgot password?</strong> on the sign-in screen instead.</p>
+      <label class="subscription-account-label" for="subscriptionAccountCurrentPass">Current password</label>
+      <input type="password" id="subscriptionAccountCurrentPass" class="subscription-account-input" autocomplete="current-password" />
+      <label class="subscription-account-label" for="subscriptionAccountNewPass">New password</label>
+      <input type="password" id="subscriptionAccountNewPass" class="subscription-account-input" autocomplete="new-password" />
+      <label class="subscription-account-label" for="subscriptionAccountNewPass2">Confirm new password</label>
+      <input type="password" id="subscriptionAccountNewPass2" class="subscription-account-input" autocomplete="new-password" />
+      <div class="subscription-account-profile-actions">
+        <button type="button" class="btn btn-default" id="subscriptionAccountPasswordChangeBtn">Update password</button>
+      </div>
     </div>
     <div id="subscriptionAccountCard" class="subscription-account-card">
       <div id="subscriptionAccountBadge" class="subscription-account-badge">—</div>
@@ -1565,6 +1616,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="client-rules.js" defer></script>
   <script src="app.js" defer></script>
 </body>
 </html>

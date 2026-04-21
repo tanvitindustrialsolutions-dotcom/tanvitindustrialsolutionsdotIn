@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" class="qg-register-root" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contacts — Quotation Generator</title>
+  <meta name="description" content="Saved contacts across clients and companies.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.5/dist/umd/supabase.min.js"></script>
+</head>
+<body class="qg-register-body">
+  <div class="reg-page">
+    <div class="reg-inner">
+      <header class="reg-head">
+        <div>
+          <h1>Contacts</h1>
+          <p>Access contacts in a dedicated page. Open any client in app to edit contact details.</p>
+        </div>
+        <div class="reg-actions">
+          <select id="regThemeSelect" class="reg-theme-select">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="corporate">Corporate</option>
+            <option value="soft">Soft</option>
+          </select>
+          <button type="button" class="btn btn-default" id="regSignOut" style="font-size:11px;display:none">Sign out</button>
+          <a class="btn btn-ghost" href="portal.html" style="font-size:11px">← HOME</a>
+          <a class="btn btn-default" href="index.html">Full app</a>
+        </div>
+      </header>
+
+      <nav class="reg-shell-nav">
+        <a class="reg-shell-tab" data-page="accounts" href="register-accounts.html">Accounts Register</a>
+        <a class="reg-shell-tab" data-page="contacts" href="register-contacts.html">Contacts</a>
+      </nav>
+
+      <div class="reg-card reg-auth" id="regAuthCard">
+        <div class="reg-auth-title">SIGN IN</div>
+        <label for="regEmail">Email</label>
+        <input id="regEmail" type="email" autocomplete="username" placeholder="you@company.com">
+        <label for="regPass">Password</label>
+        <input id="regPass" type="password" autocomplete="current-password" placeholder="Password">
+        <div class="reg-auth-actions">
+          <button type="button" class="btn btn-primary" id="regSignIn">Sign in</button>
+        </div>
+        <div class="reg-err" id="regErr"></div>
+      </div>
+
+      <div class="reg-card" id="regMainCard" style="display:none;">
+        <div class="reg-card-head">
+          <span class="reg-card-title">Contacts</span>
+          <div class="reg-actions">
+            <select id="regContactsCategoryFilter" class="reg-theme-select" style="min-width:160px">
+              <option value="all">All categories</option>
+              <option value="customer">Customer</option>
+              <option value="vendor">Vendor</option>
+              <option value="reseller">Reseller</option>
+            </select>
+            <input type="search" id="regContactsSearch" class="reg-contacts-search" placeholder="Search…" autocomplete="off" title="Search contact, client, company, phone, email">
+            <button type="button" class="btn btn-primary" id="regAddContact">Add contact</button>
+            <button type="button" class="btn btn-ghost" id="regRefresh">Refresh</button>
+          </div>
+        </div>
+        <div class="reg-muted" style="margin-bottom:10px">Add contacts directly from this page, or open in app for full client editing.</div>
+        <div id="regContactsWrap"></div>
+        <div class="reg-empty" id="regContactsEmpty" style="display:none;">No contacts saved yet.</div>
+      </div>
+    </div>
+  </div>
+  <script src="client-rules.js"></script>
+  <script src="register-common.js"></script>
+  <script src="register-contacts.js"></script>
+</body>
+</html>

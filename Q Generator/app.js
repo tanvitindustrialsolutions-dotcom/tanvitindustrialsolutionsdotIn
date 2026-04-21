@@ -1,3 +1,29 @@
+const QG_THEME_KEY = 'qg-theme-preset';
+const QG_THEME_PRESETS = ['dark', 'light', 'corporate', 'soft'];
+
+function applyThemePreset(theme) {
+  const t = QG_THEME_PRESETS.includes(theme) ? theme : 'dark';
+  try { document.documentElement.setAttribute('data-theme', t); } catch (_) {}
+  try { localStorage.setItem(QG_THEME_KEY, t); } catch (_) {}
+  const sel = document.getElementById('themeSelect');
+  if (sel && sel.value !== t) sel.value = t;
+}
+
+function bootThemePreset() {
+  let t = 'dark';
+  try { t = localStorage.getItem(QG_THEME_KEY) || 'dark'; } catch (_) {}
+  applyThemePreset(t);
+}
+
+function initThemeUI() {
+  const sel = document.getElementById('themeSelect');
+  if (!sel) return;
+  let t = 'dark';
+  try { t = localStorage.getItem(QG_THEME_KEY) || 'dark'; } catch (_) {}
+  sel.value = QG_THEME_PRESETS.includes(t) ? t : 'dark';
+  sel.addEventListener('change', () => applyThemePreset(sel.value || 'dark'));
+}
+
 function showPanel(n){var p=document.getElementById("panel-"+n),t=document.getElementById("tab-"+n);if(!p)return;document.querySelectorAll(".panel-section").forEach(function(x){x.classList.remove("active")});document.querySelectorAll(".snav-btn").forEach(function(x){x.classList.remove("active")});p.classList.add("active");if(t)t.classList.add("active");}
 window.showPanel=showPanel;
 // ===== STATE
@@ -30,6 +56,9 @@ const BILLING_TRIAL_PHASE1_DAYS = 15;
 const BILLING_TRIAL_PHASE2_DAYS = 15;
 const BILLING_PRICE_INR_MONTHLY = 100;
 const BILLING_PRICE_INR_YEARLY = 1000;
+
+/** When true, trial/subscription phases do not block export, saved quotations, or cloud writes (until in-app payment is live). */
+const BILLING_SOFTWARE_LOCKS_DISABLED = true;
 
 /**
  * Hosted payment links (primary): full HTTPS URLs from Razorpay Dashboard.
@@ -150,6 +179,38 @@ function validateGstin(value) {
   if (v.length !== 15)         return 'invalid';
   if (!GSTIN_REGEX.test(v))    return 'invalid';
   return 'valid';
+}
+
+/** Normalize GST for comparison (does not depend on client-rules.js). */
+function _qgNormGstin(s) {
+  return String(s || '').trim().toUpperCase().replace(/\s/g, '');
+}
+/** Same duplicate threshold as client-rules (≥10 chars after normalize). */
+function _qgGstComparableKey(s) {
+  const n = _qgNormGstin(s);
+  return n.length >= 10 ? n : '';
+}
+
+/** Another company profile (not editingId) already uses this seller GST. editingId=null for new insert. */
+function _findCompanyGstDuplicateAmongProfiles(gstRaw, editingId) {
+  const key = _qgGstComparableKey(gstRaw);
+  if (!key || typeof DM === 'undefined' || !DM.getCompanies) return null;
+  for (const c of DM.getCompanies()) {
+    if (editingId != null && String(c.id) === String(editingId)) continue;
+    if (_qgGstComparableKey(c.companyGstin) === key) return c;
+  }
+  return null;
+}
+
+/** Seller GST on a different company profile than companyId matches client gstRaw. */
+function _findOtherCompanyProfileMatchingClientGst(gstRaw, companyId) {
+  const key = _qgGstComparableKey(gstRaw);
+  if (!key || typeof DM === 'undefined' || !DM.getCompanies) return null;
+  for (const c of DM.getCompanies()) {
+    if (String(c.id) === String(companyId || '')) continue;
+    if (_qgGstComparableKey(c.companyGstin) === key) return c;
+  }
+  return null;
 }
 
 // Live feedback on a GSTIN input — shows coloured badge next to field
@@ -350,7 +411,7 @@ function openClientPicker(e) {
         // Render contacts picker for this client
         const db2 = DM.getClients ? DM.getClients() : [];
         const cl = db2.find(x => String(x.id) === String(id));
-        const contacts = (cl && Array.isArray(cl.contacts)) ? cl.contacts : [];
+        const contacts = (cl && Array.isArray(cl.contacts)) ? normalizeContactsList(cl.contacts) : [];
 
         if (contactsWrap && contactsEl && contacts.length) {
           contactsWrap.style.display = '';
@@ -358,7 +419,7 @@ function openClientPicker(e) {
             `<div class="client-picker-contact" data-idx="-1">Use all contacts</div>`,
             ...contacts.map((ct, idx) => {
               const label = [ct.salutation, ct.name, ct.designation].filter(Boolean).join(' ').trim();
-              const meta2 = [ct.phone, ct.email].filter(Boolean).join(' · ');
+              const meta2 = [contactCategoryLabel(ct.category), ct.phone, ct.email].filter(Boolean).join(' · ');
               return `<div class="client-picker-contact" data-idx="${idx}">
                 <div style="font-weight:650">${escHtml(label || ('Contact ' + (idx+1)))}</div>
                 ${meta2 ? `<div style="color:#9aa3b2;font-size:11px;margin-top:2px">${escHtml(meta2)}</div>` : ''}
@@ -676,7 +737,7 @@ function openContactPicker(e) {
     : document.getElementById('docClientContact');
   if (!anchor) return;
 
-  const contacts = Array.isArray(state.contacts) ? state.contacts : [];
+  const contacts = normalizeContactsList(Array.isArray(state.contacts) ? state.contacts : []);
   // If no contacts yet, still show picker with "Add new contact"
 
   const rect = anchor.getBoundingClientRect();
@@ -717,7 +778,7 @@ function openContactPicker(e) {
       `<div class="client-picker-contact" data-idx="-1">Use all contacts</div>`,
       ...(contacts.length ? contacts.map((ct, idx) => {
         const label = [ct.salutation, ct.name, ct.designation].filter(Boolean).join(' ').trim();
-        const meta = [ct.phone, ct.email].filter(Boolean).join(' · ');
+        const meta = [contactCategoryLabel(ct.category), ct.phone, ct.email].filter(Boolean).join(' · ');
         return `<div class="client-picker-contact" data-idx="${idx}">
           <div style="font-weight:650">${escHtml(label || ('Contact ' + (idx+1)))}</div>
           ${meta ? `<div style="color:#9aa3b2;font-size:11px;margin-top:2px">${escHtml(meta)}</div>` : ''}
@@ -819,6 +880,16 @@ function openAddContactModal() {
             <button type="button" id="acSkipEmail" style="padding:7px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:transparent;color:#9aa3b2;cursor:pointer;font-size:12px">Skip</button>
           </div>
         </div>
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;align-items:center">
+          <div style="color:#9aa3b2;font-size:12px">Category *</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="acCategory" style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.10);background:#0b0d12;color:#e9ecf5;font-size:12px;outline:none">
+              <option value="customer">Customer</option>
+              <option value="vendor">Vendor</option>
+              <option value="reseller">Reseller</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <div style="display:flex;gap:8px;justify-content:flex-end;padding:12px 14px;border-top:1px solid rgba(255,255,255,0.08)">
@@ -845,15 +916,16 @@ function openAddContactModal() {
   if (saveBtn) saveBtn.addEventListener('click', () => {
     const cn = (nameEl?.value || '').trim();
     if (!cn) { showNotification('Contact name is required', 'error'); return; }
-    const contact = {
+    const contact = normalizeContact({
       id: Date.now() + Math.random(),
       salutation: ($('acSal')?.value || '').trim(),
       name: cn,
       designation: ($('acDes')?.value || '').trim(),
       phone: ($('acPhone')?.value || '').trim(),
       email: ($('acEmail')?.value || '').trim(),
-    };
-    state.contacts = Array.isArray(state.contacts) ? state.contacts : [];
+      category: ($('acCategory')?.value || 'customer').trim().toLowerCase(),
+    });
+    state.contacts = normalizeContactsList(state.contacts);
     state.contacts.push(contact);
     renderContacts();
     syncDoc();
@@ -1013,6 +1085,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+  bootThemePreset();
+  initThemeUI();
+  qgCaptureDocQueryParam();
+  initAppLauncher();
+
   // Set today's date
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('docDate').value = today;
@@ -1064,6 +1141,10 @@ document.addEventListener('DOMContentLoaded', () => {
     _restoreActiveCompanyProfile();
     renderCoProfileList();
     if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+    qgTryOpenPendingDoc();
+    qgTryOpenPendingClient();
+    if (typeof qgSchedulePendingDocOpenRetries === 'function') qgSchedulePendingDocOpenRetries();
+    if (typeof qgSchedulePendingClientOpenRetries === 'function') qgSchedulePendingClientOpenRetries();
   });
 });
 
@@ -1396,7 +1477,7 @@ async function saveCurrentQuotation() {
     showDiscountOnDoc: document.getElementById('showDiscOnDoc')?.checked || false,
     letterShowTo:      document.getElementById('letterShowTo')?.checked   || false,
     letterShowSeal:    document.getElementById('letterShowSeal')?.checked || false,
-    contacts:   JSON.parse(JSON.stringify(state.contacts || [])),
+    contacts:   normalizeContactsList(JSON.parse(JSON.stringify(state.contacts || []))),
     // All input field values
     fields: {}
   };
@@ -1466,14 +1547,23 @@ function _refreshSidebarAfterRestore() {
 }
 
 async function openQuotation(uid) {
+  if (typeof qgPruneReturnNavIfDocMismatch === 'function') qgPruneReturnNavIfDocMismatch(uid);
   const snap = await DM.loadQuotation(uid);
-  if (!snap) { showToast('Could not load quotation.', 'warn'); return; }
+  if (!snap) {
+    if (typeof qgClearAppReturnNav === 'function') qgClearAppReturnNav();
+    showToast('Could not load quotation.', 'warn');
+    return false;
+  }
 
   // Restore state
   if (snap.docType) { state.docType = snap.docType; const sel = document.getElementById('docTypeSelect'); if (sel) sel.value = snap.docType; _applyLetterheadMode(snap.docType === 'letterhead'); }
   if (snap.colors)  { state.colors = snap.colors;  applyColors(); }
   if (snap.template) { applyTemplate(snap.template, false); }
-  if (snap.items)   { state.items  = snap.items; if (typeof renderItems === 'function') renderItems(); }
+  if (snap.items) {
+    mergeLegacyItemSpecIntoDesc(snap.items);
+    state.items = snap.items;
+    if (typeof renderItems === 'function') renderItems();
+  }
   if (snap.showItemDiscount !== undefined) {
     const _hasDiscValues = (snap.items || []).some(i => parseFloat(i.disc) > 0);
     // Old buggy snapshot: showItemDiscount=false but items have disc values
@@ -1502,7 +1592,7 @@ async function openQuotation(uid) {
     const chk = document.getElementById('showDiscOnDoc');
     if (chk) chk.checked = state.showDiscountOnDoc;
   }
-  if (snap.contacts){ state.contacts = snap.contacts; if (typeof renderContacts === 'function') renderContacts(); }
+  if (snap.contacts){ state.contacts = normalizeContactsList(snap.contacts); if (typeof renderContacts === 'function') renderContacts(); }
 
   // Restore field values
   if (snap.fields) {
@@ -1565,7 +1655,250 @@ async function openQuotation(uid) {
   // Re-apply letterhead mode after all async operations settle
   _applyLetterheadMode(state.docType === 'letterhead');
   syncDoc();
+  if (typeof qgUpdateReturnNavUI === 'function') qgUpdateReturnNavUI();
+  return true;
 }
+
+const QG_APP_RETURN_KEY = 'qg-app-return';
+
+function qgReadAppReturnNav() {
+  try {
+    const raw = sessionStorage.getItem(QG_APP_RETURN_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || typeof o.href !== 'string' || !o.href.trim()) return null;
+    const fid = String(o.fromDocId || '').trim();
+    if (!fid) return null;
+    const label = typeof o.label === 'string' && o.label.trim() ? o.label.trim() : 'Back to register';
+    return { href: o.href.trim(), label, fromDocId: fid };
+  } catch (_) {
+    return null;
+  }
+}
+
+function qgUpdateReturnNavUI() {
+  const nav = qgReadAppReturnNav();
+  const btn = document.getElementById('qgReturnNavBtn');
+  if (!btn) return;
+  const viewingId = state.viewingLocked?.id ? String(state.viewingLocked.id) : '';
+  if (!nav || !viewingId || nav.fromDocId !== viewingId) {
+    btn.style.display = 'none';
+    btn.removeAttribute('href');
+    btn.setAttribute('aria-hidden', 'true');
+    return;
+  }
+  btn.setAttribute('href', nav.href);
+  btn.textContent = nav.label;
+  btn.style.display = '';
+  btn.removeAttribute('aria-hidden');
+}
+
+function qgClearAppReturnNav() {
+  try { sessionStorage.removeItem(QG_APP_RETURN_KEY); } catch (_) {}
+  qgUpdateReturnNavUI();
+}
+
+function qgPruneReturnNavIfDocMismatch(openedUid) {
+  try {
+    const raw = sessionStorage.getItem(QG_APP_RETURN_KEY);
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    const want = o && o.fromDocId != null ? String(o.fromDocId).trim() : '';
+    if (!want || want !== String(openedUid || '').trim()) {
+      sessionStorage.removeItem(QG_APP_RETURN_KEY);
+      qgUpdateReturnNavUI();
+    }
+  } catch (_) {
+    try { sessionStorage.removeItem(QG_APP_RETURN_KEY); } catch (__) {}
+    qgUpdateReturnNavUI();
+  }
+}
+
+const QG_DOC_QUERY_KEY = 'qg-open-doc';
+const QG_CLIENT_QUERY_KEY = 'qg-open-client';
+const QG_COMPANY_QUERY_KEY = 'qg-open-company';
+
+/** Accept canonical UUID or 32-char hex (some clients omit hyphens). */
+function qgSanitizeDocQueryId(raw) {
+  const doc = String(raw || '').trim();
+  if (!doc || doc.length > 64) return '';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(doc)) return doc;
+  if (/^[0-9a-f]{32}$/i.test(doc)) return doc;
+  return '';
+}
+
+function qgCaptureDocQueryParam() {
+  try {
+    const u = new URL(window.location.href);
+    const doc = qgSanitizeDocQueryId(u.searchParams.get('doc'));
+    const company = String(u.searchParams.get('company') || '').trim();
+    const client = String(u.searchParams.get('client') || '').trim();
+    if (doc) {
+      sessionStorage.setItem(QG_DOC_QUERY_KEY, doc);
+      u.searchParams.delete('doc');
+    }
+    if (company) {
+      sessionStorage.setItem(QG_COMPANY_QUERY_KEY, company);
+      u.searchParams.delete('company');
+    }
+    if (client) {
+      sessionStorage.setItem(QG_CLIENT_QUERY_KEY, client);
+      u.searchParams.delete('client');
+    }
+    if (doc || company || client) {
+      const qs = u.searchParams.toString();
+      history.replaceState({}, document.title, u.pathname + (qs ? '?' + qs : '') + u.hash);
+    }
+  } catch (_) {}
+}
+
+async function openQuotationWithCompanySwitch(docId) {
+  if (!docId || typeof DM === 'undefined' || !DM.isLoggedIn || !DM.isLoggedIn()) return false;
+  const meta = await DM.getSavedQuotationMeta(docId);
+  if (!meta) {
+    if (typeof showToast === 'function') showToast('Could not find that saved document.', 'warn');
+    return false;
+  }
+  const cref = meta.company_ref ? String(meta.company_ref) : '';
+  if (cref && String(state.activeCompanyId || '') !== cref) {
+    const p = DM.getCompanies().find(c => String(c.id) === cref);
+    if (p && typeof loadCompanyProfile === 'function') {
+      await loadCompanyProfile(cref);
+    } else if (cref) {
+      if (typeof showToast === 'function') {
+        showToast('Company profile for this document is missing — opening with your current profile.', 'warn');
+      }
+    }
+  }
+  return (await openQuotation(docId)) === true;
+}
+
+let _qgPendingDocOpening = false;
+let _qgPendingClientOpening = false;
+
+function qgTryOpenPendingDoc() {
+  const doc = sessionStorage.getItem(QG_DOC_QUERY_KEY);
+  if (!doc || typeof DM === 'undefined' || !DM.isLoggedIn || !DM.isLoggedIn()) return;
+  if (_qgPendingDocOpening) return;
+  _qgPendingDocOpening = true;
+  openQuotationWithCompanySwitch(doc)
+    .then((ok) => {
+      if (ok) sessionStorage.removeItem(QG_DOC_QUERY_KEY);
+      else { try { if (typeof qgClearAppReturnNav === 'function') qgClearAppReturnNav(); } catch (_) {} }
+    })
+    .catch((e) => {
+      console.error('[QG] open pending doc', e);
+      sessionStorage.removeItem(QG_DOC_QUERY_KEY);
+      try { if (typeof qgClearAppReturnNav === 'function') qgClearAppReturnNav(); } catch (_) {}
+      if (typeof showToast === 'function') showToast('Could not open document from link.', 'warn');
+    })
+    .finally(() => {
+      _qgPendingDocOpening = false;
+    });
+}
+
+/** Register / deep-link: auth and companies can lag behind first init().then — retry while key remains. */
+function qgSchedulePendingDocOpenRetries() {
+  [650, 1600, 3200].forEach((ms) => {
+    setTimeout(() => {
+      try {
+        if (!sessionStorage.getItem(QG_DOC_QUERY_KEY)) return;
+        qgTryOpenPendingDoc();
+      } catch (_) {}
+    }, ms);
+  });
+}
+
+async function qgOpenClientWithCompanySwitch(companyId, clientId) {
+  const wantCompany = String(companyId || '').trim();
+  const wantClient = String(clientId || '').trim();
+  if (!wantClient || typeof DM === 'undefined' || !DM.isLoggedIn || !DM.isLoggedIn()) return false;
+  if (wantCompany && String(state.activeCompanyId || '') !== wantCompany && typeof loadCompanyProfile === 'function') {
+    await loadCompanyProfile(wantCompany);
+  }
+  const db = DM.getClients ? DM.getClients() : [];
+  const hit = (db || []).find((c) => String(c.id) === wantClient);
+  if (!hit) return false;
+  loadClientFromDb(hit.id);
+  return true;
+}
+
+function qgTryOpenPendingClient() {
+  const clientId = sessionStorage.getItem(QG_CLIENT_QUERY_KEY);
+  if (!clientId || typeof DM === 'undefined' || !DM.isLoggedIn || !DM.isLoggedIn()) return;
+  if (_qgPendingClientOpening) return;
+  _qgPendingClientOpening = true;
+  const companyId = sessionStorage.getItem(QG_COMPANY_QUERY_KEY) || '';
+  qgOpenClientWithCompanySwitch(companyId, clientId)
+    .then((ok) => {
+      if (ok) {
+        sessionStorage.removeItem(QG_CLIENT_QUERY_KEY);
+        sessionStorage.removeItem(QG_COMPANY_QUERY_KEY);
+      }
+    })
+    .catch((e) => {
+      console.error('[QG] open pending client', e);
+      sessionStorage.removeItem(QG_CLIENT_QUERY_KEY);
+      sessionStorage.removeItem(QG_COMPANY_QUERY_KEY);
+      if (typeof showToast === 'function') showToast('Could not open client from register link.', 'warn');
+    })
+    .finally(() => {
+      _qgPendingClientOpening = false;
+    });
+}
+
+function qgSchedulePendingClientOpenRetries() {
+  [700, 1700, 3400].forEach((ms) => {
+    setTimeout(() => {
+      try {
+        if (!sessionStorage.getItem(QG_CLIENT_QUERY_KEY)) return;
+        qgTryOpenPendingClient();
+      } catch (_) {}
+    }, ms);
+  });
+}
+
+/** After portal / launcher "App" — skip chooser on index for this browser session until sign-out. */
+const QG_SKIP_LAUNCHER_KEY = 'qg-skip-app-launcher';
+
+function qgClearSkipLauncher() {
+  try { sessionStorage.removeItem(QG_SKIP_LAUNCHER_KEY); } catch (_) {}
+}
+
+function qgSetSkipLauncher() {
+  try { sessionStorage.setItem(QG_SKIP_LAUNCHER_KEY, '1'); } catch (_) {}
+}
+
+function hideAppLauncher() {
+  const el = document.getElementById('qg-app-launcher');
+  if (!el) return;
+  el.style.display = 'none';
+  el.setAttribute('aria-hidden', 'true');
+}
+
+function showAppLauncher() {
+  const el = document.getElementById('qg-app-launcher');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.setAttribute('aria-hidden', 'false');
+}
+
+function initAppLauncher() {
+  const root = document.getElementById('qg-app-launcher');
+  if (!root) return;
+  document.getElementById('qg-launcher-register')?.addEventListener('click', () => {
+    hideAppLauncher();
+    window.location.href = 'register-accounts.html';
+  });
+  document.getElementById('qg-launcher-app')?.addEventListener('click', () => {
+    qgSetSkipLauncher();
+    hideAppLauncher();
+    try { if (typeof qgTryOpenPendingDoc === 'function') qgTryOpenPendingDoc(); } catch (_) {}
+    try { if (typeof qgTryOpenPendingClient === 'function') qgTryOpenPendingClient(); } catch (_) {}
+    try { setTimeout(() => { if (typeof scaleDocument === 'function') scaleDocument(); }, 250); } catch (_) {}
+  });
+}
+window.showAppLauncher = showAppLauncher;
 
 async function deleteQuotation(uid) {
   if (!confirm('Delete this saved quotation? This cannot be undone.')) return;
@@ -1598,7 +1931,7 @@ async function updateQuotation(uid) {
     showDiscountOnDoc: document.getElementById('showDiscOnDoc')?.checked || false,
     letterShowTo:      document.getElementById('letterShowTo')?.checked   || false,
     letterShowSeal:    document.getElementById('letterShowSeal')?.checked || false,
-    contacts:          JSON.parse(JSON.stringify(state.contacts || [])),
+    contacts:          normalizeContactsList(JSON.parse(JSON.stringify(state.contacts || []))),
     fields:            {}
   };
   document.querySelectorAll('.sidebar-content input, .sidebar-content select, .sidebar-content textarea').forEach(el => {
@@ -1684,6 +2017,7 @@ async function exitLockedMode() {
   const sq = document.getElementById('quotSearch');
   if (sq) sq.value = '';
   await renderQuotationsList();
+  if (typeof qgUpdateReturnNavUI === 'function') qgUpdateReturnNavUI();
 }
 
 function _applyLockMode(locked) {
@@ -1840,9 +2174,40 @@ function updateNameSize(val) {
 }
 
 // ===== CONTACTS =====
+const CONTACT_CATEGORIES = ['customer', 'vendor', 'reseller'];
+const CONTACT_CATEGORY_LABELS = { customer: 'Customer', vendor: 'Vendor', reseller: 'Reseller' };
+
+function _normalizeContactCategory(cat) {
+  const v = String(cat || '').trim().toLowerCase();
+  return CONTACT_CATEGORIES.includes(v) ? v : 'customer';
+}
+
+function normalizeContact(raw = {}) {
+  const c = raw && typeof raw === 'object' ? raw : {};
+  return {
+    id: c.id || (Date.now() + Math.random()),
+    salutation: String(c.salutation || '').trim() || 'Mr.',
+    name: String(c.name || '').trim(),
+    designation: String(c.designation || '').trim(),
+    phone: String(c.phone || '').trim(),
+    email: String(c.email || '').trim(),
+    category: _normalizeContactCategory(c.category),
+  };
+}
+
+function normalizeContactsList(list) {
+  if (!Array.isArray(list)) return [];
+  return list.map((c) => normalizeContact(c)).filter((c) => c.name || c.phone || c.email);
+}
+
+function contactCategoryLabel(cat) {
+  return CONTACT_CATEGORY_LABELS[_normalizeContactCategory(cat)] || 'Customer';
+}
+
 function addContact(data = {}) {
   const id = Date.now() + Math.random();
-  const contact = { id, salutation: data.salutation || 'Mr.', name: data.name || '', designation: data.designation || '', phone: data.phone || '', email: data.email || '' };
+  const contact = normalizeContact({ id, salutation: data.salutation || 'Mr.', name: data.name || '', designation: data.designation || '', phone: data.phone || '', email: data.email || '', category: data.category || 'customer' });
+  state.contacts = normalizeContactsList(state.contacts);
   state.contacts.push(contact);
   renderContacts();
   syncDoc();
@@ -1857,12 +2222,14 @@ function removeContact(id) {
 function renderContacts() {
   const list = document.getElementById('contactsList');
   list.innerHTML = '';
+  state.contacts = normalizeContactsList(state.contacts);
   state.contacts.forEach((c, idx) => {
     const div = document.createElement('div');
     div.className = 'contact-card';
     div.innerHTML = `
       <div class="contact-card-header">
         <span class="contact-card-label">Contact ${idx + 1}</span>
+        <span class="contact-card-category contact-cat-${c.category}">${contactCategoryLabel(c.category)}</span>
         <button class="del-row-btn" onclick="removeContact(${c.id})" title="Remove">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -1880,6 +2247,13 @@ function renderContacts() {
         <input type="text" value="${escHtml(c.name)}" placeholder="Full Name" oninput="updateContact(${c.id},'name',this.value)" style="font-size:12px">
         <input type="text" value="${escHtml(c.designation)}" placeholder="Designation" oninput="updateContact(${c.id},'designation',this.value)" style="font-size:12px">
       </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:6px">
+        <select style="font-size:12px;padding:6px 6px" onchange="updateContact(${c.id},'category',this.value)">
+          <option value="customer" ${c.category==='customer'?'selected':''}>Customer</option>
+          <option value="vendor" ${c.category==='vendor'?'selected':''}>Vendor</option>
+          <option value="reseller" ${c.category==='reseller'?'selected':''}>Reseller</option>
+        </select>
+      </div>
       <div class="form-row">
         <div><input type="tel" value="${escHtml(c.phone)}" placeholder="Phone" oninput="updateContact(${c.id},'phone',this.value)" style="font-size:12px"></div>
         <div><input type="email" value="${escHtml(c.email)}" placeholder="Email" oninput="updateContact(${c.id},'email',this.value)" style="font-size:12px"></div>
@@ -1891,18 +2265,22 @@ function renderContacts() {
 
 function updateContact(id, field, value) {
   const c = state.contacts.find(c => c.id === id);
-  if (c) { c[field] = value; syncDoc(); }
+  if (c) {
+    if (field === 'category') c[field] = _normalizeContactCategory(value);
+    else c[field] = value;
+    syncDoc();
+  }
 }
 
 // ===== EXCEL TEMPLATE DOWNLOAD =====
 function downloadExcelTemplate() {
   const ws = XLSX.utils.aoa_to_sheet([
-    ['Description', 'Specification / HSN', 'Qty', 'Unit', 'Rate', 'GST%'],
-    ['Sample Item 1', 'HSN: 8481', 1, 'Nos', 1000, 18],
-    ['Sample Item 2', '', 2, 'Set', 500, 12],
-    ['Sample Item 3', 'HSN: 7307', 5, 'Kg', 200, 5],
+    ['Description', 'Qty', 'Unit', 'Rate', 'GST%'],
+    ['Sample Item 1 (HSN can go in this column)', 1, 'Nos', 1000, 18],
+    ['Sample Item 2', 2, 'Set', 500, 12],
+    ['Sample Item 3', 5, 'Kg', 200, 5],
   ]);
-  ws['!cols'] = [{wch:35},{wch:22},{wch:8},{wch:10},{wch:12},{wch:8}];
+  ws['!cols'] = [{wch:40},{wch:8},{wch:10},{wch:12},{wch:8}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Items');
   XLSX.writeFile(wb, 'items_template.xlsx');
@@ -2129,7 +2507,7 @@ function saveState() {
       const el = document.getElementById(id);
       if (el) saved[id] = el.checked;
     });
-    saved._contacts = state.contacts;
+    saved._contacts = normalizeContactsList(state.contacts);
     // Images stored in user_images table — not in session
     saved._partnerAlign = state.partnerAlign || 'center';
     saved._docType = state.docType;
@@ -2177,7 +2555,7 @@ function loadState() {
       if (el.type === 'checkbox') el.checked = saved[id];
       else el.value = saved[id];
     });
-    if (saved._contacts) { state.contacts = saved._contacts; renderContacts(); }
+    if (saved._contacts) { state.contacts = normalizeContactsList(saved._contacts); renderContacts(); }
     else if (!state.contacts.length) { addContact(); }
     if (saved._partnerLogos) { state.partnerLogos = saved._partnerLogos; renderPartnerLogosSidebar(); }
     if (saved._productImages) { state.productImages = saved._productImages; renderProductImagesSidebar(); syncProductImagesToDoc(); }
@@ -2408,6 +2786,19 @@ function toggleItemDiscount() {
   syncDoc();
 }
 
+/** Old line items had `desc` + `spec`; spec is merged into desc when loading saved data. */
+function mergeLegacyItemSpecIntoDesc(items) {
+  if (!Array.isArray(items)) return;
+  for (const it of items) {
+    if (!it || typeof it !== 'object') continue;
+    const s = String(it.spec || '').trim();
+    if (!s) { delete it.spec; continue; }
+    const d = String(it.desc || '').trim();
+    it.desc = d ? `${d} — ${s}` : s;
+    delete it.spec;
+  }
+}
+
 function addItem(data = {}) {
   const id = Date.now() + Math.random();
   const slabs = getGstSlabs();
@@ -2415,7 +2806,6 @@ function addItem(data = {}) {
   const item = {
     id,
     desc: data.desc || '',
-    spec: data.spec || '',
     qty:  data.qty  || 1,
     unit: data.unit || 'Nos',
     rate: data.rate || 0,
@@ -2464,7 +2854,6 @@ function renderItems() {
       <td class="col-sno" style="color:var(--text-muted);font-size:11px;padding:4px 4px;text-align:center">${idx + 1}</td>
       <td class="col-desc">
         <input type="text" value="${escHtml(item.desc)}" placeholder="Item description" oninput="updateItem(${item.id},'desc',this.value)" style="font-size:11.5px">
-        <input type="text" value="${escHtml(item.spec)}" placeholder="Spec / HSN (optional)" oninput="updateItem(${item.id},'spec',this.value)" style="font-size:10px;color:var(--text-muted);margin-top:2px">
       </td>
       <td class="col-qty"><input type="number" value="${item.qty}" min="0" oninput="updateItem(${item.id},'qty',this.value)" style="text-align:right;font-size:11.5px"></td>
       <td class="col-unit"><input type="text" value="${escHtml(item.unit)}" oninput="updateItem(${item.id},'unit',this.value)" style="text-align:center;font-size:11px"></td>
@@ -2916,8 +3305,6 @@ function syncDoc() {
         <td class="sno">${idx + 1}</td>
         <td>
           <div class="item-desc doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="desc">${escHtml(item.desc) || ''}</div>
-          <div class="item-spec doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="spec">${escHtml(item.spec) || ''}</div>
-          
         </td>
         <td class="right doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="qty">${escHtml(item.qty)}</td>
         <td class="center doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="unit">${escHtml(item.unit)}</td>
@@ -3239,7 +3626,6 @@ function checkPageOverflow() {
       <td class="sno">${idx + 1}</td>
       <td>
         <div class="item-desc doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="desc">${escHtml(item.desc) || ''}</div>
-        <div class="item-spec doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="spec">${escHtml(item.spec) || ''}</div>
       </td>
       <td class="right doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="qty">${escHtml(item.qty)}</td>
       <td class="center doc-editable" contenteditable="true" spellcheck="false" data-item-id="${item.id}" data-item-field="unit">${escHtml(item.unit)}</td>
@@ -4157,11 +4543,14 @@ function handleExcelImport(input) {
       if (descI < 0) { showNotification('Could not find description column', 'error'); return; }
       let added = 0;
       rows.slice(1).forEach(row => {
-        const desc = String(row[descI] || '').trim();
+        const descBase = String(row[descI] || '').trim();
+        const specPart = specI >= 0 ? String(row[specI] || '').trim() : '';
+        const desc = specPart && descBase
+          ? `${descBase} — ${specPart}`
+          : (descBase || specPart);
         if (!desc) return;
         addItem({
           desc,
-          spec:    specI >= 0  ? String(row[specI]  || '') : '',
           qty:     qtyI  >= 0  ? parseFloat(row[qtyI])  || 1 : 1,
           unit:    unitI >= 0  ? String(row[unitI] || 'Nos') : 'Nos',
           rate:    rateI >= 0  ? parseFloat(row[rateI]) || 0 : 0,
@@ -4487,7 +4876,7 @@ const DM = (() => {
     if (error) { console.error('[DB] loadClients:', error.message); return; }
     _clients[companyId] = (data||[]).map(r => ({
       id:r.id, name:r.name, gstin:r.gstin||'', address:r.address||'',
-      buyerState:r.buyer_state||'', contacts:r.contacts||[], shipAddresses:r.ship_addresses||[]
+      buyerState:r.buyer_state||'', contacts:normalizeContactsList(r.contacts||[]), shipAddresses:r.ship_addresses||[]
     }));
     console.log('[DB] clients loaded:', _clients[companyId].length, 'for', companyId);
   }
@@ -4608,6 +4997,10 @@ const DM = (() => {
     if (_user?.id === user.id && _loginReadyUserId === user.id) {
       _user = user; _updatePill();
       console.log('[LOGIN] same user re-auth, skipping reinit');
+      // init().then may have run renderCoProfileList() before this chain finished (getSession null vs INITIAL_SESSION race).
+      try {
+        if (typeof renderCoProfileList === 'function') renderCoProfileList();
+      } catch (_) {}
       return;
     }
     console.log('[LOGIN] loading for', user.email);
@@ -4662,7 +5055,7 @@ const DM = (() => {
     state.viewingLocked  = null;
     state.activeClientId = null;
     state.items          = [];
-    state.contacts       = [];
+      state.contacts       = [];
     if (typeof loadState         === 'function') loadState();
     if (!state.items?.length && typeof addItem === 'function') addItem();
     if (typeof renderClientDb    === 'function') renderClientDb();
@@ -4672,9 +5065,35 @@ const DM = (() => {
     if (typeof autoDetectGstType === 'function') autoDetectGstType();
     if (typeof syncDoc           === 'function') syncDoc();
     console.log('[LOGIN] step ui sync ok');
+    try { if (typeof qgUpdateReturnNavUI === 'function') qgUpdateReturnNavUI(); } catch (_) {}
     _loginReadyUserId = user.id;
     if (typeof updateBillingBanner === 'function') updateBillingBanner();
     console.log('[LOGIN] done. activeCompanyId:', state.activeCompanyId);
+    let pendingDoc = null;
+    let pendingClient = null;
+    let skipLauncher = false;
+    try {
+      pendingDoc = sessionStorage.getItem('qg-open-doc');
+      pendingClient = sessionStorage.getItem('qg-open-client');
+    } catch (_) {}
+    try {
+      skipLauncher = sessionStorage.getItem('qg-skip-app-launcher') === '1';
+    } catch (_) {}
+    const wantLauncher = typeof window !== 'undefined' && window._qgShowLauncherAfterLogin;
+    if (typeof window !== 'undefined') window._qgShowLauncherAfterLogin = false;
+    if (wantLauncher && !skipLauncher && !pendingDoc && !pendingClient && typeof window.showAppLauncher === 'function') {
+      window.showAppLauncher();
+    } else {
+      try {
+        if (typeof qgTryOpenPendingDoc === 'function') queueMicrotask(() => qgTryOpenPendingDoc());
+        if (typeof qgTryOpenPendingClient === 'function') queueMicrotask(() => qgTryOpenPendingClient());
+      } catch (_) {}
+    }
+    // DM.init().then() often runs before this async body finishes when getSession() is briefly null — refresh lists then.
+    try {
+      if (typeof renderCoProfileList === 'function') renderCoProfileList();
+      if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+    } catch (_) {}
   }
 
   /** Queue login work so SIGNED_IN and getSession never run two loads at once; always re-enables Sign In on failure. */
@@ -4905,6 +5324,15 @@ const DM = (() => {
         s.billingSetupAt = null;
         s.paidThrough = null;
       }
+      if (BILLING_SOFTWARE_LOCKS_DISABLED) {
+        s.canExport = true;
+        s.canSaveQuotation = true;
+        s.canCloudWrite = true;
+        s.reason = null;
+        s.phase = 'paid';
+        s.headline = 'Full access';
+        s.detail = 'Trial and payment checks are paused until in-app billing is available.';
+      }
       return s;
     },
 
@@ -4963,20 +5391,53 @@ const DM = (() => {
       return { ok: true };
     },
 
+    async changeAccountPassword() {
+      if (!uid()) return { ok: false, error: 'Not signed in' };
+      const email = String(_user.email || '').trim();
+      if (!email) return { ok: false, error: 'No email on this account.' };
+      const cur = document.getElementById('subscriptionAccountCurrentPass')?.value || '';
+      const p1 = document.getElementById('subscriptionAccountNewPass')?.value || '';
+      const p2 = document.getElementById('subscriptionAccountNewPass2')?.value || '';
+      if (!cur) return { ok: false, error: 'Enter your current password.' };
+      if (!p1 || p1.length < 6) return { ok: false, error: 'New password must be at least 6 characters.' };
+      if (p1 !== p2) return { ok: false, error: 'New passwords do not match.' };
+      if (cur === p1) return { ok: false, error: 'New password must be different from your current password.' };
+      const { error: signErr } = await sb().auth.signInWithPassword({ email, password: cur });
+      if (signErr) {
+        const raw = signErr.message || '';
+        const bad = /invalid login credentials|invalid email or password/i.test(raw);
+        return {
+          ok: false,
+          error: bad
+            ? 'Current password is incorrect (or this account does not use a password — use Forgot password on the sign-in screen).'
+            : raw || 'Could not verify your current password.',
+        };
+      }
+      const { error: upErr } = await sb().auth.updateUser({ password: p1 });
+      if (upErr) return { ok: false, error: upErr.message || 'Could not update password.' };
+      ['subscriptionAccountCurrentPass', 'subscriptionAccountNewPass', 'subscriptionAccountNewPass2'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      const { data: { user } } = await sb().auth.getUser();
+      if (user) _user = user;
+      return { ok: true };
+    },
+
     assertCanExport() {
-      const s = _computeBillingState(_subscriptionRow);
+      const s = this.getBillingState();
       if (s.canExport) return true;
       _showBillingWall(s);
       return false;
     },
     assertCanSaveQuotation() {
-      const s = _computeBillingState(_subscriptionRow);
+      const s = this.getBillingState();
       if (s.canSaveQuotation) return true;
       _showBillingWall(s);
       return false;
     },
     assertCanCloudWrite() {
-      const s = _computeBillingState(_subscriptionRow);
+      const s = this.getBillingState();
       if (s.canCloudWrite) return true;
       _showBillingWall(s);
       return false;
@@ -5054,12 +5515,23 @@ const DM = (() => {
       if (/^localhost$|^127\.0\.0\.1$/i.test(location.hostname)) {
         console.info('[QG] If login hangs, try InPrivate/Incognito with extensions off — see DEV-SERVER.txt (Host validation).');
       }
-      // Show appropriate overlay immediately — no waiting for session check
-      if (_isRecoveryUrl()) _showSetPasswordUI();
-      else _showLoginUI();
-      _updatePill();
+      sb();
+      const recoveryUrl = _isRecoveryUrl();
+      // Password-reset links: drop any persisted normal session first. Otherwise INITIAL_SESSION can
+      // still be the old user briefly and _onLogin removes the "Set new password" overlay while
+      // the app looks fully signed in — confusing during reset.
+      if (recoveryUrl) {
+        try {
+          await sb().auth.signOut({ scope: 'local' });
+        } catch (e) {
+          console.warn('[AUTH] recovery pre-clear', e);
+        }
+        _showSetPasswordUI();
+        _updatePill();
+      }
       // Subscribe BEFORE getSession so PASSWORD_RECOVERY / URL exchange is not missed (race).
-      sb().auth.onAuthStateChange(async (event, session) => {
+      // Do not await heavy work (e.g. _onLogin → DB) inside this callback — it can deadlock Supabase's auth lock.
+      sb().auth.onAuthStateChange((event, session) => {
         try {
           if (event === 'PASSWORD_RECOVERY') {
             _hideLoginUI();
@@ -5073,26 +5545,93 @@ const DM = (() => {
           }
           // v2 emits INITIAL_SESSION on boot; SIGNED_IN after password sign-in — both must load user data.
           if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
-            await _onLogin(session.user);
+            if (_isRecoveryUrl() && !_sessionIsPasswordRecovery(session)) {
+              return;
+            }
+            const u = session.user;
+            queueMicrotask(() => { void _onLogin(u); });
+            return;
           }
           if (event === 'SIGNED_OUT') {
             _user=null; _loginReadyUserId=null; _subscriptionRow=null; _userProfileRow=null; _companies=[]; _clients={}; _images={}; _session=null; _defaults=null; _quotCache={};
             _updatePill(); _showLoginUI();
             if (typeof updateBillingBanner === 'function') updateBillingBanner();
+            try { if (typeof qgClearSkipLauncher === 'function') qgClearSkipLauncher(); } catch (_) {}
+            try { if (typeof hideAppLauncher === 'function') hideAppLauncher(); } catch (_) {}
+            try { if (typeof qgClearAppReturnNav === 'function') qgClearAppReturnNav(); } catch (_) {}
           }
         } catch (e) {
           console.error('[AUTH] onAuthStateChange', event, e);
         }
       });
+      try {
+        const a = sb().auth;
+        if (a && typeof a.initialize === 'function') await a.initialize();
+      } catch (e) {
+        console.warn('[AUTH] initialize', e);
+      }
       const { data:{ session } } = await sb().auth.getSession();
+      if (recoveryUrl) {
+        if (session?.user) {
+          if (_sessionIsPasswordRecovery(session)) {
+            _hideLoginUI();
+            _showSetPasswordUI();
+          } else if (!_isRecoveryUrl()) {
+            await _onLogin(session.user);
+          }
+        }
+        return;
+      }
+      // Normal load: do NOT show login until we know there is no session — avoids a false "logged out"
+      // screen when opening the app from portal / another tab (session is in localStorage).
       if (session?.user) {
         if (_sessionIsPasswordRecovery(session)) {
           _hideLoginUI();
           _showSetPasswordUI();
-        } else if (!_isRecoveryUrl()) {
+        } else {
           await _onLogin(session.user);
         }
+      } else {
+        // getSession() can stay null briefly while auth hydrates — retry with small delays (portal → full app).
+        let found = null;
+        const delays = [0, 50, 150, 400];
+        for (let i = 0; i < delays.length; i++) {
+          const d = delays[i];
+          if (d > 0) await new Promise(r => setTimeout(r, d));
+          else await new Promise(r => queueMicrotask(r));
+          const { data: { session: sx } } = await sb().auth.getSession();
+          if (sx?.user) {
+            found = sx;
+            break;
+          }
+        }
+        if (found?.user) {
+          if (_sessionIsPasswordRecovery(found)) {
+            _hideLoginUI();
+            _showSetPasswordUI();
+          } else {
+            await _onLogin(found.user);
+          }
+        } else {
+          _showLoginUI();
+        }
       }
+      _updatePill();
+      // Deferred _onLogin from INITIAL_SESSION may finish after init() returns — refresh profile UI a few times.
+      const _qgUiCatchup = () => {
+        try {
+          if (!DM.isLoggedIn()) return;
+          if (typeof renderCoProfileList === 'function') renderCoProfileList();
+          if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
+          try {
+            if (sessionStorage.getItem('qg-open-doc') && typeof qgTryOpenPendingDoc === 'function') qgTryOpenPendingDoc();
+            if (sessionStorage.getItem('qg-open-client') && typeof qgTryOpenPendingClient === 'function') qgTryOpenPendingClient();
+          } catch (_) {}
+        } catch (_) {}
+      };
+      queueMicrotask(_qgUiCatchup);
+      setTimeout(_qgUiCatchup, 120);
+      setTimeout(_qgUiCatchup, 500);
     },
 
     async _handleLogin() {
@@ -5133,6 +5672,7 @@ const DM = (() => {
           if (error) throw error;
           if (signData?.session?.user) {
             if (errEl) errEl.style.display = 'none';
+            if (typeof window !== 'undefined') window._qgShowLauncherAfterLogin = true;
             await _onLogin(signData.session.user);
             if (btn) { btn.textContent='Create Account'; btn.disabled=false; }
             return;
@@ -5165,6 +5705,7 @@ const DM = (() => {
             if (btn) { btn.textContent = 'Sign In'; btn.disabled = false; }
             return;
           }
+          if (typeof window !== 'undefined') window._qgShowLauncherAfterLogin = true;
           await _onLogin(u);
         }
       } catch(e) { showErr(e.message); if(btn){btn.textContent=isSignUp?'Create Account':'Sign In';btn.disabled=false;} }
@@ -5199,6 +5740,7 @@ const DM = (() => {
         if (!u) throw new Error('Verified but no session. Try signing in with your password.');
         _hideAuthOtpStep();
         if (errEl) errEl.style.display = 'none';
+        if (typeof window !== 'undefined') window._qgShowLauncherAfterLogin = true;
         await _onLogin(u);
       } catch (e) {
         showErr(e.message || 'Invalid or expired code. Resend the code or open the confirmation link from your email.');
@@ -5353,7 +5895,10 @@ const DM = (() => {
         showMsg('Password updated. Signing you in…', true);
         _cleanAuthUrl();
         const { data:{ session } } = await sb().auth.getSession();
-        if (session?.user) await _onLogin(session.user);
+        if (session?.user) {
+          if (typeof window !== 'undefined') window._qgShowLauncherAfterLogin = true;
+          await _onLogin(session.user);
+        }
       } catch(e) {
         showMsg(e.message || 'Failed to update password.', false);
         if (btn) { btn.textContent = 'Update Password'; btn.disabled = false; }
@@ -5369,6 +5914,21 @@ const DM = (() => {
       if (!this.assertCanCloudWrite()) return null;
       const profile = { ...profileData };
       delete profile.id; delete profile.local_id; // never embed UUID inside JSON
+
+      const editingId = (id && id !== '__new__') ? String(id) : null;
+      const gstDupKey = _qgGstComparableKey(profile.companyGstin || '');
+      if (gstDupKey) {
+        for (const c of _companies) {
+          if (editingId != null && String(c.id) === editingId) continue;
+          if (_qgGstComparableKey(c.companyGstin) === gstDupKey) {
+            const lbl = (c.companyName || c.name || 'Another profile').trim() || 'Another profile';
+            if (typeof showNotification === 'function') {
+              showNotification('This GST number is already saved on profile "' + lbl + '". You cannot use the same GST on more than one company profile.', 'error');
+            }
+            return null;
+          }
+        }
+      }
 
       if (!id || id === '__new__') {
         // INSERT — DB generates UUID
@@ -5427,6 +5987,34 @@ const DM = (() => {
       const companyId = cid();
       if (!companyId) { showNotification('No active company profile', 'error'); return null; }
       if (!uid())     { showNotification('Not signed in', 'error'); return null; }
+      const R = typeof window !== 'undefined' ? window.QGClientRules : null;
+      if (R && typeof R.check === 'function') {
+        const list = this.getClients(companyId);
+        const v = R.check(list, { name: cl.name || '', gstin: cl.gstin || '' }, {});
+        if (v.block) { showNotification(v.block, 'error'); return null; }
+        if (v.warn) {
+          const ok = await askYesNo(v.warn + '\n\nProceed anyway?');
+          if (!ok) return null;
+        }
+      } else {
+        const ck = _qgGstComparableKey(cl.gstin || '');
+        if (ck) {
+          for (const x of this.getClients(companyId)) {
+            if (_qgGstComparableKey(x.gstin) === ck) {
+              showNotification('This GSTIN is already saved for client "' + (String(x.name || '').trim() || '—') + '".', 'error');
+              return null;
+            }
+          }
+        }
+      }
+      {
+        const other = _findOtherCompanyProfileMatchingClientGst(cl.gstin, companyId);
+        if (other) {
+          const lbl = (other.companyName || other.name || 'another profile').trim() || 'another profile';
+          showNotification('This GSTIN matches your company profile "' + lbl + '". Add this client under that profile, or use a different GSTIN.', 'error');
+          return null;
+        }
+      }
       const { data, error } = await sb().from('clients')
         .insert({ company_id:companyId, user_id:uid(),
                   name:cl.name||'', gstin:cl.gstin||'', address:cl.address||'',
@@ -5446,13 +6034,42 @@ const DM = (() => {
 
     async updateClientRecord(id, cl) {
       if (!this.assertCanCloudWrite()) return false;
+      const companyId = cid();
+      const R = typeof window !== 'undefined' ? window.QGClientRules : null;
+      if (R && typeof R.check === 'function' && companyId) {
+        const list = this.getClients(companyId);
+        const v = R.check(list, { name: cl.name || '', gstin: cl.gstin || '' }, { excludeId: String(id) });
+        if (v.block) { showNotification(v.block, 'error'); return false; }
+        if (v.warn) {
+          const ok = await askYesNo(v.warn + '\n\nProceed anyway?');
+          if (!ok) return false;
+        }
+      } else if (companyId) {
+        const ck = _qgGstComparableKey(cl.gstin || '');
+        if (ck) {
+          for (const x of this.getClients(companyId)) {
+            if (String(x.id) === String(id)) continue;
+            if (_qgGstComparableKey(x.gstin) === ck) {
+              showNotification('This GSTIN is already saved for client "' + (String(x.name || '').trim() || '—') + '".', 'error');
+              return false;
+            }
+          }
+        }
+      }
+      if (companyId) {
+        const other = _findOtherCompanyProfileMatchingClientGst(cl.gstin, companyId);
+        if (other) {
+          const lbl = (other.companyName || other.name || 'another profile').trim() || 'another profile';
+          showNotification('This GSTIN matches your company profile "' + lbl + '". Edit that profile’s clients there, or use a different GSTIN.', 'error');
+          return false;
+        }
+      }
       const { error } = await sb().from('clients')
         .update({ name:cl.name||'', gstin:cl.gstin||'', address:cl.address||'',
                   buyer_state:cl.buyerState||'', contacts:cl.contacts||[],
                   ship_addresses:cl.shipAddresses||[] })
         .eq('id', id).eq('user_id', uid());
       if (error) { console.error('[DB] client update:', error.message); showNotification('Update failed: '+error.message,'error'); return false; }
-      const companyId = cid();
       if (companyId && _clients[companyId]) {
         const idx = _clients[companyId].findIndex(c=>c.id===id);
         if (idx>=0) _clients[companyId][idx] = { ..._clients[companyId][idx], ...cl, id };
@@ -5534,6 +6151,15 @@ const DM = (() => {
         finalized:q.finalized||false, remark:q.remark||'', savedAt:q.saved_at
       }));
       return _quotCache[key];
+    },
+
+    /** For deep links: which company profile owns this saved row (RLS: same user only). */
+    async getSavedQuotationMeta(id) {
+      if (!uid() || !id) return null;
+      const { data, error } = await sb().from('saved_quotations')
+        .select('id, company_ref').eq('id', String(id)).eq('user_id', uid()).maybeSingle();
+      if (error || !data) return null;
+      return { id: data.id, company_ref: data.company_ref };
     },
 
     async saveQuotation(snapshot) {
@@ -5629,8 +6255,16 @@ function openBillingModalFromState(s) {
   }
 }
 
+function clearSubscriptionAccountPasswordFields() {
+  ['subscriptionAccountCurrentPass', 'subscriptionAccountNewPass', 'subscriptionAccountNewPass2'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
 function openSubscriptionAccountModal() {
   const show = () => {
+    clearSubscriptionAccountPasswordFields();
     if (typeof updateSubscriptionAccountUI === 'function') updateSubscriptionAccountUI();
     const m = document.getElementById('subscriptionAccountModal');
     if (m) {
@@ -6416,6 +7050,26 @@ function initBillingUI() {
       }
     });
   }
+  const pwdBtn = document.getElementById('subscriptionAccountPasswordChangeBtn');
+  if (pwdBtn) {
+    pwdBtn.addEventListener('click', async () => {
+      if (typeof DM === 'undefined' || !DM.changeAccountPassword) return;
+      const prev = pwdBtn.textContent;
+      pwdBtn.disabled = true;
+      pwdBtn.textContent = 'Updating…';
+      try {
+        const r = await DM.changeAccountPassword();
+        if (r?.ok) {
+          if (typeof showNotification === 'function') showNotification('Password updated', 'ok');
+        } else if (r?.error && typeof showNotification === 'function') {
+          showNotification(r.error, 'error');
+        }
+      } finally {
+        pwdBtn.disabled = false;
+        pwdBtn.textContent = prev;
+      }
+    });
+  }
 }
 
 
@@ -6687,8 +7341,8 @@ async function saveToCompanyProfile() {
   const name = data.companyName.trim();
   if (!name) { showNotification('Enter a company name first', 'error'); return; }
 
-  // Validate company GSTIN if provided
-  const gstin     = (data.gstin || '').trim().toUpperCase();
+  // Validate company GSTIN if provided (field is companyGstin on profile)
+  const gstin     = (data.companyGstin || '').trim().toUpperCase();
   const gstStatus = validateGstin(gstin);
   if (gstin && gstStatus === 'invalid') {
     showNotification('Invalid company GSTIN format. Must be 15 chars like 22AAAAA0000A1Z5', 'error');
@@ -6709,6 +7363,14 @@ async function saveToCompanyProfile() {
   }
 
   const targetId = existing ? existing.id : null;
+
+  const gstDup = _findCompanyGstDuplicateAmongProfiles(gstin, targetId);
+  if (gstDup) {
+    const lbl = (gstDup.companyName || gstDup.name || 'Another profile').trim() || 'Another profile';
+    showNotification('This GST number is already saved on profile "' + lbl + '". You cannot add another company profile with the same GST.', 'error');
+    return;
+  }
+
   const newId    = await DM.saveProfileData(targetId, data);
   if (!newId) { showNotification('Failed to save profile — check console', 'error'); return; }
 
@@ -6848,7 +7510,9 @@ function closeCompanyProfiles() {
 }
 
 function newDoc() {
-  if (!confirm('Start a new document? Client and items will be cleared. Company details stay loaded.')) return;
+  if (!confirm('HOME a new document? Client and items will be cleared. Company details stay loaded.')) return;
+
+  if (typeof qgClearAppReturnNav === 'function') qgClearAppReturnNav();
 
   // Clear client fields
   clearClientFields();
@@ -6884,7 +7548,7 @@ function newProfile() {
     showNotification('Profile limit reached (' + PROFILE_LIMIT + '). Delete a profile before creating a new one.', 'error');
     return;
   }
-  if (!confirm('Start a completely fresh profile? Everything will be cleared — company, client, items and all fields.')) return;
+  if (!confirm('HOME a completely fresh profile? Everything will be cleared — company, client, items and all fields.')) return;
   closeCompanyProfiles();
 
   // Clear active profile tracking
@@ -7004,27 +7668,6 @@ async function saveClientToDb() {
     return;
   }
 
-  const db = DM.getClients();
-
-  // GSTIN duplicate check:
-  // - If we're editing an existing client (activeClientId), allow same GSTIN on that record.
-  // - If GSTIN exists on some other client, offer to UPDATE that client instead of blocking.
-  let gstDup = null;
-  if (gstin) {
-    gstDup = db.find(c => (c.gstin || '').trim().toUpperCase() === gstin) || null;
-    if (gstDup && state.activeClientId && String(gstDup.id) === String(state.activeClientId)) {
-      gstDup = null; // same client, OK
-    }
-  }
-
-  // Name duplicate warning if no GSTIN
-  if (!gstin) {
-    const nameDup = db.find(c => c.name.trim().toLowerCase() === name.toLowerCase());
-    if (nameDup) {
-      if (!confirm('Client "' + name + '" already exists without a GSTIN — are you sure this is a different client?')) return;
-    }
-  }
-
   const shipAddr  = (document.getElementById('shipToAddress') || {}).value || '';
   const shipState = (document.getElementById('shipToState')   || {}).value || '';
   const firstShipTo = shipAddr.trim() ? [{
@@ -7040,46 +7683,13 @@ async function saveClientToDb() {
     gstin,
     gstNotAvailable: gstNA,
     buyerState:    (document.getElementById('buyerState')    || {}).value || '',
-    contacts:      state.contacts ? JSON.parse(JSON.stringify(state.contacts)) : [],
+    contacts:      normalizeContactsList(state.contacts ? JSON.parse(JSON.stringify(state.contacts)) : []),
     shipAddresses: firstShipTo,
   };
 
   console.log('[CLIENT SAVE] company:', state.activeCompanyId, 'client:', client.name);
 
-  // If GSTIN exists on another record, treat this as an UPDATE/merge flow.
-  if (gstDup) {
-    const yes = await askYesNo(`GSTIN already exists for: ${gstDup.name}. Update that client instead?`);
-    if (!yes) return;
-
-    const merged = {
-      ...gstDup,
-      ...client,
-      // Merge contacts (dedupe by salutation+name+phone+email).
-      contacts: (() => {
-        const a = Array.isArray(gstDup.contacts) ? gstDup.contacts : [];
-        const b = Array.isArray(client.contacts) ? client.contacts : [];
-        const key = (ct) => [ct.salutation||'', ct.name||'', ct.phone||'', ct.email||''].map(s=>String(s).trim().toLowerCase()).join('|');
-        const map = new Map();
-        a.forEach(ct => map.set(key(ct), ct));
-        b.forEach(ct => map.set(key(ct), ct));
-        return Array.from(map.values());
-      })(),
-      // Prefer keeping existing ship addresses if any, otherwise take the new one.
-      shipAddresses: (Array.isArray(gstDup.shipAddresses) && gstDup.shipAddresses.length)
-        ? gstDup.shipAddresses
-        : (client.shipAddresses || []),
-    };
-
-    const ok = await DM.updateClientRecord(gstDup.id, merged);
-    if (!ok) return;
-
-    renderClientDb();
-    loadClientFromDb(gstDup.id);
-    showNotification('Client updated ✓');
-    return;
-  }
-
-  // Update existing active client (no GST conflict)
+  // Update existing active client (rules enforced inside DM.updateClientRecord)
   if (state.activeClientId) {
     const ok = await DM.updateClientRecord(state.activeClientId, client);
     if (!ok) return;
@@ -7139,7 +7749,7 @@ function loadClientFromDb(id) {
   }
 
   if (client.contacts && Array.isArray(client.contacts)) {
-    state.contacts = JSON.parse(JSON.stringify(client.contacts));
+    state.contacts = normalizeContactsList(JSON.parse(JSON.stringify(client.contacts)));
     renderContacts();
   }
 
@@ -7176,6 +7786,34 @@ function clearClientFields() {
   renderShipToAddresses(null);
   autoDetectGstType();
   syncDoc();
+}
+
+async function openClientFromDbCard(companyId, clientId) {
+  const wantCo = String(companyId || '');
+  const wantCl = String(clientId || '');
+  if (!wantCl) return;
+  if (wantCo && String(state.activeCompanyId || '') !== wantCo && typeof loadCompanyProfile === 'function') {
+    await loadCompanyProfile(wantCo);
+  }
+  loadClientFromDb(wantCl);
+}
+
+async function openEditClientFromDbCard(companyId, clientId, e) {
+  if (e) e.stopPropagation();
+  const wantCo = String(companyId || '');
+  if (wantCo && String(state.activeCompanyId || '') !== wantCo && typeof loadCompanyProfile === 'function') {
+    await loadCompanyProfile(wantCo);
+  }
+  openEditClient(clientId, { stopPropagation() {} });
+}
+
+async function deleteClientFromDbCard(companyId, clientId, e) {
+  if (e) e.stopPropagation();
+  const wantCo = String(companyId || '');
+  if (wantCo && String(state.activeCompanyId || '') !== wantCo && typeof loadCompanyProfile === 'function') {
+    await loadCompanyProfile(wantCo);
+  }
+  deleteClientFromDb(clientId, { stopPropagation() {} });
 }
 
 // ===== SHIP-TO ADDRESS MANAGEMENT =====
@@ -7232,7 +7870,7 @@ function selectShipToAddress(clientId, addrId) {
   syncDoc();
 }
 
-function saveShipToToClient() {
+async function saveShipToToClient() {
   const clientId = state.activeClientId;
   if (!clientId) { showNotification('Load a client first to save an address', 'error'); return; }
 
@@ -7254,8 +7892,13 @@ function saveShipToToClient() {
   const label = (prompt('Label for this address (e.g. "Mumbai Warehouse"):', defaultLabel) || '').trim();
   if (!label) return;
 
-  client.shipAddresses.push({ id: Date.now(), label, address, state: stateCode });
-  DM.updateClientRecord(client.id, client);
+  const newAddr = { id: Date.now(), label, address, state: stateCode };
+  client.shipAddresses.push(newAddr);
+  const ok = await DM.updateClientRecord(client.id, client);
+  if (!ok) {
+    client.shipAddresses = client.shipAddresses.filter(a => a.id !== newAddr.id);
+    return;
+  }
 
   const sChk   = document.getElementById('shipSameAsBilling');
   const sFields = document.getElementById('shipToFields');
@@ -7265,13 +7908,18 @@ function saveShipToToClient() {
   showNotification('Address saved ✓');
 }
 
-function deleteShipToAddress(clientId, addrId, e) {
+async function deleteShipToAddress(clientId, addrId, e) {
   e.stopPropagation();
   const db     = DM.getClients();
   const client = db.find(c => c.id === clientId);
   if (!client) return;
+  const prev = (client.shipAddresses || []).slice();
   client.shipAddresses = (client.shipAddresses || []).filter(a => a.id !== addrId);
-  DM.updateClientRecord(client.id, client);
+  const ok = await DM.updateClientRecord(client.id, client);
+  if (!ok) {
+    client.shipAddresses = prev;
+    return;
+  }
   renderShipToAddresses(clientId);
 }
 
@@ -7280,33 +7928,53 @@ function renderClientDb() {
   const container = document.getElementById('clientDbList');
   if (!container) return;
 
-  const db    = DM.getClients();
+  const companies = (DM.getCompanies ? DM.getCompanies() : []);
+  const allClients = [];
+  if (companies.length && DM.getClients) {
+    companies.forEach((co) => {
+      const cid = String(co.id);
+      const rows = DM.getClients(cid) || [];
+      rows.forEach((r) => allClients.push({ ...r, _companyId: cid }));
+    });
+  } else {
+    (DM.getClients() || []).forEach((r) => allClients.push({ ...r, _companyId: String(state.activeCompanyId || '') }));
+  }
   const query = ((document.getElementById('clientDbSearch') || {}).value || '').toLowerCase().trim();
-  const filtered = query
-    ? db.filter(c => c.name.toLowerCase().includes(query) ||
-                     (c.gstin  || '').toLowerCase().includes(query) ||
-                     (c.address|| '').toLowerCase().includes(query))
-    : db;
+  const categorySel = document.getElementById('clientDbCategoryFilter');
+  const selectedCategory = (categorySel && categorySel.value) ? String(categorySel.value) : 'all';
+
+  const filtered = allClients.filter((c) => {
+    const contacts = normalizeContactsList(c.contacts || []);
+    const categoryOk = selectedCategory === 'all' || contacts.some((ct) => _normalizeContactCategory(ct.category) === selectedCategory);
+    if (!categoryOk) return false;
+
+    if (!query) return true;
+    const contactText = contacts.map((ct) => [ct.name, ct.phone, ct.email, ct.designation, ct.salutation, contactCategoryLabel(ct.category)].join(' ')).join(' ');
+    const hay = [c.name, c.gstin, c.address, contactText].map((x) => String(x || '').toLowerCase()).join(' ');
+    return hay.includes(query);
+  });
 
   if (filtered.length === 0) {
     container.innerHTML = `<div class="client-db-empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 6px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      ${query ? 'No clients match your search' : 'No saved clients yet.<br>Fill in client details below<br>and click <strong>Save to Client DB</strong>'}
+      ${(query || selectedCategory !== 'all') ? 'No clients match current filters' : 'No saved clients yet.<br>Fill in client details below<br>and click <strong>Save to Client DB</strong>'}
     </div>`;
     return;
   }
 
   container.innerHTML = filtered.map(c => {
-    const meta = [c.gstin, c.address ? c.address.split('\n')[0] : ''].filter(Boolean).join(' · ');
-    return `<div class="client-card" onclick="loadClientFromDb('${c.id}')">
+    const co = companies.find((x) => String(x.id) === String(c._companyId || ''));
+    const coName = (co && (co.companyName || co.name)) ? (co.companyName || co.name) : '';
+    const meta = [coName, c.gstin, c.address ? c.address.split('\n')[0] : ''].filter(Boolean).join(' · ');
+    return `<div class="client-card" onclick="openClientFromDbCard('${escHtml(String(c._companyId || ''))}','${escHtml(String(c.id))}')">
       <div class="client-card-info">
         <div class="client-card-name">${escHtml(c.name)}</div>
         ${meta ? `<div class="client-card-meta">${escHtml(meta)}</div>` : ''}
       </div>
-      <button class="client-card-edit" onclick="openEditClient('${c.id}', event)" title="Edit client">
+      <button class="client-card-edit" onclick="openEditClientFromDbCard('${escHtml(String(c._companyId || ''))}','${escHtml(String(c.id))}', event)" title="Edit client">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="client-card-del" onclick="deleteClientFromDb('${c.id}', event)" title="Remove from DB">
+      <button class="client-card-del" onclick="deleteClientFromDbCard('${escHtml(String(c._companyId || ''))}','${escHtml(String(c.id))}', event)" title="Remove from DB">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
       </button>
     </div>`;
@@ -7323,7 +7991,7 @@ function exportClientDbExcel() {
   const clientRows = [['ID','Name','GSTIN','Buyer State Code','Buyer State Name','Billing Address','Contacts']];
   db.forEach(c => {
     const stateName = (GST_STATE_CODES && c.buyerState) ? (GST_STATE_CODES[c.buyerState] || '') : '';
-    const contacts  = (c.contacts || []).map(ct => [ct.salutation||'', ct.name, ct.designation, ct.phone, ct.email].filter(Boolean).join(' | ')).join('; ');
+    const contacts  = normalizeContactsList(c.contacts || []).map(ct => [ct.salutation||'', ct.name, ct.designation, ct.phone, ct.email, contactCategoryLabel(ct.category)].filter(Boolean).join(' | ')).join('; ');
     clientRows.push([c.id, c.name, c.gstin, c.buyerState||'', stateName, c.address||'', contacts]);
   });
 
@@ -7417,7 +8085,7 @@ function importClientDbExcel(input) {
               designation = parts[offset+1] || '';
               phone       = parts[offset+2] || '';
               email       = parts[offset+3] || '';
-              client.contacts.push({ id: Date.now() + Math.random(), salutation, name, designation, phone, email });
+              client.contacts.push(normalizeContact({ id: Date.now() + Math.random(), salutation, name, designation, phone, email, category: 'customer' }));
             }
           });
         }
@@ -7465,7 +8133,7 @@ function openEditClient(id, e) {
 
   _editClientId  = id;
   _editShipAddrs = JSON.parse(JSON.stringify(client.shipAddresses || []));
-  _editContacts  = JSON.parse(JSON.stringify(client.contacts      || []));
+  _editContacts  = normalizeContactsList(JSON.parse(JSON.stringify(client.contacts || [])));
 
   const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || ''; };
   set('editClientName',    client.name);
@@ -7508,6 +8176,13 @@ function renderEditContacts() {
         <input type="text" value="${escHtml(c.name)}" placeholder="Full Name" oninput="_updateEditContact(${c.id},'name',this.value)" style="font-size:12px">
         <input type="text" value="${escHtml(c.designation)}" placeholder="Designation" oninput="_updateEditContact(${c.id},'designation',this.value)" style="font-size:12px">
       </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:6px">
+        <select style="font-size:12px;padding:6px 4px" onchange="_updateEditContact(${c.id},'category',this.value)">
+          <option value="customer" ${_normalizeContactCategory(c.category)==='customer'?'selected':''}>Customer</option>
+          <option value="vendor" ${_normalizeContactCategory(c.category)==='vendor'?'selected':''}>Vendor</option>
+          <option value="reseller" ${_normalizeContactCategory(c.category)==='reseller'?'selected':''}>Reseller</option>
+        </select>
+      </div>
       <div class="form-row">
         <div><input type="tel" value="${escHtml(c.phone)}" placeholder="Phone" oninput="_updateEditContact(${c.id},'phone',this.value)" style="font-size:12px"></div>
         <div><input type="email" value="${escHtml(c.email)}" placeholder="Email" oninput="_updateEditContact(${c.id},'email',this.value)" style="font-size:12px"></div>
@@ -7518,7 +8193,7 @@ function renderEditContacts() {
 }
 
 function _addEditContact() {
-  _editContacts.push({ id: Date.now() + Math.random(), salutation: 'Mr.', name: '', designation: '', phone: '', email: '' });
+  _editContacts.push(normalizeContact({ id: Date.now() + Math.random(), salutation: 'Mr.', name: '', designation: '', phone: '', email: '', category: 'customer' }));
   renderEditContacts();
 }
 
@@ -7529,7 +8204,7 @@ function _removeEditContact(id) {
 
 function _updateEditContact(id, field, value) {
   const c = _editContacts.find(c => c.id === id);
-  if (c) c[field] = value;
+  if (c) c[field] = (field === 'category') ? _normalizeContactCategory(value) : value;
 }
 
 function renderEditShipList() {
@@ -7597,23 +8272,10 @@ async function saveEditClient() {
 
   const db = DM.getClients();
 
-  // GSTIN duplicate check — exclude current client
-  if (gstin) {
-    const gstDup = db.find(c => c.id !== _editClientId && (c.gstin || '').trim().toUpperCase() === gstin);
-    if (gstDup) { showNotification('GSTIN already used by: ' + gstDup.name, 'error'); return; }
-  }
-
-  // Name duplicate warning if no GSTIN
-  if (!gstin) {
-    const nameDup = db.find(c => c.id !== _editClientId && c.name.trim().toLowerCase() === name.toLowerCase());
-    if (nameDup) {
-      if (!confirm('Another client named "' + name + '" exists without a GSTIN — sure this is different?')) return;
-    }
-  }
-
   const idx = db.findIndex(c => c.id === _editClientId);
   if (idx < 0) { showNotification('Client not found', 'error'); return; }
 
+  const prevSnapshot = JSON.parse(JSON.stringify(db[idx]));
   db[idx] = {
     ...db[idx],
     name,
@@ -7621,7 +8283,7 @@ async function saveEditClient() {
     gstin,
     gstNotAvailable: gstNA,
     buyerState:      document.getElementById('editBuyerState').value || '',
-    contacts:        JSON.parse(JSON.stringify(_editContacts)),
+    contacts:        normalizeContactsList(JSON.parse(JSON.stringify(_editContacts))),
     shipAddresses:   _editShipAddrs,
   };
 
@@ -7633,6 +8295,7 @@ async function saveEditClient() {
     showNotification('Client updated ✓');
     closeEditClient();
   } else {
-    showNotification('Update failed — open console for details', 'error');
+    db[idx] = JSON.parse(JSON.stringify(prevSnapshot));
+    showNotification('Update cancelled or failed.', 'error');
   }
 }

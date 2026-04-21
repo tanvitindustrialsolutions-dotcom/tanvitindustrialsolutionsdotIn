@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get a quotation | Tanvit Industrial Solution</title>
+<meta name="description" content="Request a product quotation — Tanvit Industrial Solution. Email or call for prices and delivery.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="icon" type="image/png" href="assets/logo-tanvit.png">
+</head>
+<body><header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <a class="brand-link" href="index.html" aria-label="Tanvit Industrial Solutions — Home">
+        <div class="brand-lockup">
+          <img class="brand-logo" src="assets/logo-tanvit.png" alt="" width="240" height="160" decoding="async">
+          <div class="brand-text">
+            <span class="brand-name">TANVIT INDUSTRIAL SOLUTIONS</span>
+            <span class="brand-tagline">A Trusted partner for Industry</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    <nav class="nav" aria-label="Main">
+      <a href="index.html" class="">Home</a>
+      <a href="shop.html" class="">Shop</a>
+      <a href="highlight.html" class="">Highlight</a>
+      <a href="about.html" class="">About</a>
+      <a href="contact.html" class="">Contact</a>
+      <a href="quotation.html" class="quote-nav-link active" aria-label="GET QUOTATION">GET QUOTATION</a>
+    </nav>
+  </div>
+</header><main>
+  <div class="page-hero">
+    <h1>Get a quotation</h1>
+    <p class="lead">We do not take orders through a shopping cart on this site. Tell us what you need and we will respond with pricing, lead time, and dispatch options.</p>
+  </div>
+  <div class="container section quotation-section">
+    <div class="quotation-page-grid">
+      <div class="prose quotation-instructions">
+        <h2>How to request a quote</h2>
+        <ol style="padding-left:1.25rem;line-height:1.7;color:var(--color-text-muted)">
+          <li>Browse the <a href="shop.html">shop</a> and open a product.</li>
+          <li>Choose quantity (and enter any required specifications, for example capacity and length for configurable machinery).</li>
+          <li>Click <strong>Get quotation</strong> on the product page — your request is sent straight to us from the site.</li>
+        </ol>
+        <p style="margin-top:1.25rem;font-size:0.9375rem;color:var(--color-text-muted)">Or use the form on this page — your message is delivered to our inbox when you click <strong>Send request</strong> (no Outlook or other mail program required).</p>
+        <p style="margin-top:1rem">
+          <a class="btn btn-secondary" href="contact.html">Full contact details</a>
+        </p>
+        <p style="margin-top:1rem;font-size:0.9375rem;color:var(--color-text-muted)">Direct email: <strong>tanvitindustrialsolutions@gmail.com</strong> · Phone: <a href="tel:+919414110440">+91-9414110440</a></p>
+      </div>
+      <div class="quotation-form-card">
+        <h2 class="quotation-form-card__title">Quotation request form</h2>
+        <p class="quotation-form-card__lead">Fill in your details and what you need, then send — we receive it directly at our office inbox (see <code>docs/OPERATIONS.md</code> to connect the form if this is a new deployment).</p>
+        <div id="quotationFormSuccess" class="quotation-form-success" role="status" hidden></div>
+        <div id="quotationFormError" class="quotation-form-error" role="alert" hidden></div>
+        <form id="quotationForm" class="quotation-form" novalidate>
+          <div class="form-group">
+            <label for="q_name">Your name <span class="req">*</span></label>
+            <input type="text" id="q_name" name="q_name" required autocomplete="name" maxlength="120" placeholder="Contact person">
+          </div>
+          <div class="form-group">
+            <label for="q_company">Company / organisation</label>
+            <input type="text" id="q_company" name="q_company" autocomplete="organization" maxlength="160" placeholder="Optional">
+          </div>
+          <div class="form-group">
+            <label for="q_email">Email <span class="req">*</span></label>
+            <input type="email" id="q_email" name="q_email" required autocomplete="email" maxlength="120" placeholder="you@company.com">
+          </div>
+          <div class="form-group">
+            <label for="q_phone">Phone <span class="req">*</span></label>
+            <input type="tel" id="q_phone" name="q_phone" required autocomplete="tel" maxlength="40" placeholder="Mobile with country code">
+          </div>
+          <div class="form-group">
+            <label for="q_gst">GST number (GSTIN)</label>
+            <input type="text" id="q_gst" name="q_gst" maxlength="20" placeholder="15-character GSTIN, if applicable" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="form-group">
+            <label for="q_location">Delivery location</label>
+            <input type="text" id="q_location" name="q_location" maxlength="200" placeholder="City, state, PIN">
+          </div>
+          <div class="form-group">
+            <label for="q_message">Requirements &amp; specifications <span class="req">*</span></label>
+            <textarea id="q_message" name="q_message" required rows="5" maxlength="4000" placeholder="Products, grades, sizes, quantities, capacity/length if machinery, timeline…"></textarea>
+          </div>
+          <p class="field-hint" style="margin:0 0 1rem;font-size:0.875rem;color:var(--color-text-muted)"><span class="req">*</span> Required fields.</p>
+          <button type="submit" class="btn btn-primary">Send request</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main><footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <div class="brand-lockup footer-brand">
+        <img class="brand-logo" src="assets/logo-tanvit.png" alt="" width="200" height="133" decoding="async">
+        <div class="brand-text">
+          <span class="brand-name">TANVIT INDUSTRIAL SOLUTIONS</span>
+          <span class="brand-tagline">A Trusted partner for Industry</span>
+        </div>
+      </div>
+      <p style="margin-top:1rem">Industrial consumables and machinery for manufacturing, fabrication, and maintenance teams across India.</p>
+    </div>
+    <div>
+      <h3>Explore</h3>
+      <p><a href="shop.html">Shop catalog</a></p>
+      <p><a href="highlight.html">Today's highlight</a></p>
+      <p><a href="about.html">About us</a></p>
+    </div>
+    <div>
+      <h3>Contact</h3>
+      <p><a href="contact.html">Enquiries &amp; support</a></p>
+    </div>
+  </div>
+  <div class="footer-bottom">© Tanvit Industrial Solutions. All rights reserved.</div>
+</footer><script src="js/store.js"></script>
+<script src="js/catalog-loader.js"></script>
+<script src="js/site-config.js"></script>
+<script src="js/enquiry-submit.js"></script>
+<script src="js/quotation-page.js"></script>
+</body></html>

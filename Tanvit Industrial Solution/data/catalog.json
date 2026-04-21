@@ -1,0 +1,524 @@
+[
+  {
+    "id": "ador-kingbond-e6013",
+    "image": "assets/products/ador-kingbond-e6013.png",
+    "category": "consumables",
+    "weldingCategory": "electrodes",
+    "brand": "Ador Welding",
+    "name": "Ador Kingbond E6013 — rutile welding electrodes",
+    "price": 2065,
+    "minOrder": "10 BOX",
+    "description": "Ador Welding Limited Kingbond E6013: rutile type, medium coated; operates at low OCV; Ador cites X-ray quality weld deposit and vertical-down capability; typical uses include general fabrication in steel plants, light construction, shipbuilding and pipes, storage tanks, furniture, automobile bodies, and joining grades such as IS 2062 / IS 226. Indicative price — store dry and follow the datasheet. Official page: adorwelding.com (Kingbond E6013)."
+  },
+  {
+    "id": "ador-supabase-x-plus-e7018",
+    "image": "assets/products/ador-supabase-x-plus-e7018.jpg",
+    "category": "consumables",
+    "weldingCategory": "electrodes",
+    "brand": "Ador Welding",
+    "name": "Ador Supabase X Plus E7018 H4R — low-hydrogen electrodes",
+    "price": 3009,
+    "minOrder": "10 BOX",
+    "description": "Ador Welding Limited Supabase X Plus E7018 H4R: basic coated, low-hydrogen iron powder type; medium penetration; high deposition rate; radiographic weld quality; all-position. Typical applications include boilers and pressure vessels, heavy structures under dynamic loading, shipbuilding, storage tanks, bridges, pipelines, penstocks, and joining grades such as IS 2002 / IS 2062 steels per Ador. Store dry; bake and handle per manufacturer. Indicative price. Official page: adorwelding.com (Supabase X Plus E7018 H4R)."
+  },
+  {
+    "id": "superon-super-optimal-308l-15",
+    "image": "assets/products/superon-super-optimal-308l-15.png",
+    "category": "consumables",
+    "weldingCategory": "electrodes",
+    "brand": "Superon",
+    "name": "Superon SUPER OPTIMAL 308L-15 — stainless steel stick electrode (E 308L-15)",
+    "price": 3850,
+    "minOrder": "10 BOX",
+    "description": "Superon Schweisstechnik India — SUPER OPTIMAL 308L-15: AWS/SFA A5.4 E 308L-15; stainless steel rutile coating for 308/308L-type applications. Manufacturer highlights: self-lifting slag; easy strike and re-strike; seven-layer packing with VAC pack; spatter-free smooth weld deposits; suitable for AC and DC power sources; 2.5 mm diameter called out for thin sheet welding; low heat input contact type for long-life joints with minimised dilution and HAZ; no red-hot tendency for full-length welding. Typical mechanical properties cited on the product page: tensile strength ≥520 N/mm²; elongation A5 ≥40%; impact ≥47 J at −196 °C; welding conditions DC(+). Pack sizes and weights (plastic tube / lbs equivalents) per Superon literature — confirm diameter, pack, and lot with your enquiry. Indicative price — store dry and follow SDS / datasheet. Official product page: https://www.superoncorp.com/product/super-optimal-308l-15"
+  },
+  {
+    "id": "superon-super-optimal-316l-15",
+    "image": "assets/products/superon-super-optimal-316l-15.png",
+    "category": "consumables",
+    "weldingCategory": "electrodes",
+    "brand": "Superon",
+    "name": "Superon SUPER OPTIMAL 316L-15 — stainless steel stick electrode (E 316L-15)",
+    "price": 4120,
+    "minOrder": "10 BOX",
+    "description": "Superon Schweisstechnik India — SUPER OPTIMAL 316L-15: AWS/SFA A5.4 E 316L-15; extra-low carbon 316L-type stainless electrode for molybdenum-alloyed austenitic grades and corrosive service. Product page cites international approvals including CE, ABS, BV, LRS, and CWB. Typical properties in Superon’s comparison table: tensile strength ≥550 N/mm²; elongation A5 40%; impact ≥50 J at −60 °C (page also notes impact performance at −196 °C); welding conditions DC+. Marketed features: superior weldability; self-peeling slag; controlled fluidity; all-position welding. Vacuum-packed line — confirm diameter, pack size (2 / 5 / 10 / 20 kg and plastic tube options per Superon), and lot with your enquiry. Indicative price — store dry and follow SDS / datasheet. Official product page: https://www.superoncorp.com/product/super-optimal-316l-15"
+  },
+  {
+    "id": "superon-super-optimal-309l-15",
+    "image": "assets/products/superon-super-optimal-309l-15.png",
+    "category": "consumables",
+    "weldingCategory": "electrodes",
+    "brand": "Superon",
+    "name": "Superon SUPER OPTIMAL 309L-15 — stainless steel stick electrode (E 309L-15)",
+    "price": 3980,
+    "minOrder": "10 BOX",
+    "description": "Superon Schweisstechnik India — SUPER OPTIMAL 309L-15: AWS/SFA A5.4 E 309L-15; low-carbon 23Cr-12Ni-type electrode for joining stainless to carbon/low-alloy steels, buffer layers, and related dissimilar work. Product page lists international approvals for the SUPER OPTIMAL 309L range (e.g. CE, ABS, BV, LRS, CWB). Typical properties cited: tensile strength ≥550 N/mm²; elongation A5 ≥30%; impact 60 J at room temperature; welding conditions DC+. Features highlighted: excellent weldability; strong mechanical properties; vacuum-packed range. Packaging notes cover inner vac packs (2 / 5 kg), outer packs (10 / 20 kg), plastic tube options, and lbs equivalents — confirm with Superon for your SKU. Indicative price — store dry and follow SDS / datasheet. Official product page: https://www.superoncorp.com/product/super-optimal-309l-15"
+  },
+  {
+    "id": "w-mma-1",
+    "image": "assets/products/w-mma-1.png",
+    "category": "machinery",
+    "weldingCategory": "machine",
+    "brand": "Ador Welding",
+    "name": "Ador CHAMP ARC 201 — MMA / TIG inverter welder",
+    "price": 20300,
+    "minOrder": "1 NOS",
+    "description": "Ador Welding Limited CHAMP ARC 201: inverter-based output with constant current; IGBT at high frequency; MMA and TIG (scratch-start TIG in TIG mode); encoder current setting with digital display; over-voltage and over-temperature protection. Indicative listing — confirm ratings, input supply, and duty cycle for your site. Official details and datasheet: adorwelding.com (CHAMP ARC 201)."
+  },
+  {
+    "id": "w-champ-400x",
+    "image": "assets/products/w-champ-400x.jpg",
+    "category": "machinery",
+    "weldingCategory": "machine",
+    "brand": "Ador Welding",
+    "name": "Ador Champ 400 X — three-phase heavy-duty MMA welder",
+    "price": 57000,
+    "minOrder": "1 NOS",
+    "description": "Ador Welding Limited Champ 400 X: three-phase inverter DC SMAW power source — high efficiency and power factor; SMD-based reliability; built-in VRD (approx. 6–9 V DC OCV) with ON/OFF switch; Hot Start and Arc Force on panel; suited to heavy-duty work; auto-reset protections for input over/under-voltage, over-temperature, and single phasing. TIG possible with an external HF unit per Ador. Indicative price — confirm supply, installation, and duty with Ador literature. Product page: adorwelding.com (Champ 400 X).",
+    "hidePrice": false
+  },
+  {
+    "id": "w-champ-t400",
+    "image": "assets/products/w-champ-t400.png",
+    "category": "machinery",
+    "weldingCategory": "machine",
+    "brand": "Ador Welding",
+    "name": "Ador Champ T400 — three-phase inverter MMA welder",
+    "price": 64300,
+    "minOrder": "1 NOS",
+    "description": "Ador Welding Limited Champ T400: three-phase inverter DC welder with high efficiency and power factor; suited to long-distance welding and cellulosic electrodes including types such as 6010, 7010G, and 8010G; SMD technology; arc force adjustment on the panel; compact and portable; designed for long welding and return cable runs (Ador cites 100 m + 100 m). Auto-reset protections: input over/under-voltage, over-temperature, single phasing. Indicative price — confirm ratings and site conditions with Ador. Official page: adorwelding.com (Champ T400).",
+    "hidePrice": false
+  },
+  {
+    "id": "ador-champmig-400",
+    "image": "assets/products/ador-champmig-400.png",
+    "category": "machinery",
+    "weldingCategory": "machine",
+    "brand": "Ador Welding",
+    "name": "Ador Champmig 400 — heavy-duty MIG welding machine",
+    "price": 130000,
+    "minOrder": "1 NOS",
+    "description": "Ador Welding Limited Champmig 400: heavy-duty MIG (GMAW) power source for industrial use — digital panel for welding setup; about 25% more energy efficient than conventional machines per Ador; maximum power factor 0.95; strong dynamic response for arc behaviour; 2T and 4T modes; dynamic inductance control; crater voltage and crater current on the digital panel; pinch-off pulse to limit globule formation; automatic weld stop; normal or creep wire feed selection on the front. Indicative price — confirm input supply, wire feeder, torch, and duty with Ador literature. Datasheet PDF and details: https://adorwelding.com/product/champmig-400-champmig-400/",
+    "hidePrice": false
+  },
+  {
+    "id": "ador-holder-king-cool-600",
+    "image": "assets/products/ador-holder-king-cool-600.jpg",
+    "category": "consumables",
+    "weldingCategory": "accessories",
+    "brand": "Ador Welding",
+    "name": "Ador Holder King Cool-600 — insulated electrode holder",
+    "price": 480,
+    "minOrder": "20 NOS",
+    "description": "Ador Welding Limited Holder King Cool-600: crocodile-style type B fully insulated electrode holder — copper alloy main conductor with brass jaws for reliable electrode contact and continuous duty cycle. Handle, lever, and spatter protection guards use fire-retardant, heat-resistant materials per Ador. Lightweight; suitable for welding cables up to Al 120 / Cu 70 mm² (per manufacturer). Indicative price — confirm compatibility with your cables and application. Product page and literature: https://adorwelding.com/product/holder-king-cool-600-2/",
+    "hidePrice": false
+  },
+  {
+    "id": "kepro-chain-pulley-block-isi",
+    "image": "assets/products/kepro-chain-pulley-block-isi.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Chain Pulley Block — manual, ISI marked",
+    "price": 18900,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated load (SWL)",
+      "length": "Vertical lift / chain run"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — KEPRO PLUS manual chain pulley block (ISI): compact, efficient design for lifting and contracting use; premium-grade components; ISI-marked chain pulley block combining quality, safety, and performance. Load chain in best-in-class material (JSW, Jindal, or TATA steel per Kepro). Capacity range 0.5 to 20 tonnes; lifting height as per requirement — request quote for your tonnage and lift. Indicative list price — confirm model, capacity, and delivery with Kepro. Details and catalogue: https://www.kepro.in/mannual-chain-pulley-block.php"
+  },
+  {
+    "id": "kepro-flat-webbing-sling",
+    "image": "assets/products/kepro-flat-webbing-sling.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Flat Webbing Sling — ISI marked (IS 15041:2001)",
+    "price": 4200,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (SWL)",
+      "length": "Sling length (usable reach)"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — flat webbing slings ISI marked to IS 15041:2001. Heavy-duty polyester webbing, abrasion resistant, colour coded per international standards, made from 100% high-strength polyester yarn; safety factor from 5:1 to 7:1 per range. Capacity up to 40 tonnes; length up to 20 m (longer lengths can be customized). Indicative price — confirm capacity, length, and end fittings with Kepro. Product details and catalogue: https://www.kepro.in/flat-webbing.php"
+  },
+  {
+    "id": "kepro-manual-geared-trolley",
+    "image": "assets/products/kepro-manual-geared-trolley.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Manual Geared Trolley",
+    "price": 12500,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (SWL), 1–30 t range per Kepro",
+      "length": "Lift / travel or beam run (m) — specify with flange width if known"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — manual geared trolley: strong, maintenance-friendly design combining quality, flexibility, and performance; built with high-grade materials and industrial norms per Kepro. Suited to heavy industries for supporting transport along I-beams or monorail systems. Capacity range 1 to 30 tonnes; lifting height / travel as per customer requirement — request a formal quote with capacity, beam size (flange width if applicable), and travel. Indicative list price — confirm model, lead time, and delivery with Kepro. Product page: https://kepro.in/mgeared-trolley.php"
+  },
+  {
+    "id": "kepro-electric-trolley",
+    "image": "assets/products/kepro-electric-trolley.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Electric Trolley",
+    "price": 18500,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (SWL), 1–20 t range per Kepro",
+      "length": "Lift / travel or beam run (m) — specify with supply (V/Hz) if known"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — electric trolley: best-in-class trolley for heavy-duty use across industries; strong and maintenance-friendly with emphasis on quality, flexibility, and performance per Kepro. Capacity range 1 to 20 tonnes; lifting height / travel as per customer requirement — quote with capacity, beam / flange details, power supply, and control expectations. Indicative list price — confirm motorisation options, IP rating, and delivery with Kepro. Product page: https://kepro.in/electric-trolley.php"
+  },
+  {
+    "id": "kepro-ratchet-lever-hoist",
+    "image": "assets/products/kepro-ratchet-lever-hoist.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Ratchet Lever Hoist",
+    "price": 11200,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (SWL); range 250 kg to 9 t per Kepro — enter whole tonnes for quote",
+      "length": "Lift / pull length required (m)"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — ratchet lever hoist: stamped steel housing for low weight with high reliability; shorthand lever with ergonomic rubber grip. Portable unit for loading, pulling, positioning, and securing loads in power, mining, shipbuilding, construction, transport, and telecom applications per Kepro. Capacity range 250 kg to 9 tonnes; lifting height as per requirement. Indicative list price — confirm capacity, lift, and accessories with Kepro. Product page: https://kepro.in/ratchet-lever-hoist.php"
+  },
+  {
+    "id": "kepro-pull-lifting-machine",
+    "image": "assets/products/kepro-pull-lifting-machine.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Pulling & Lifting Machine",
+    "price": 18500,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated line pull / capacity (tonnes) for your application",
+      "length": "Cable / stroke length or run (m) — describe use case in enquiry if needed"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — pulling and lifting machine for heavy-duty pulling, tensioning, and lifting tasks in line with Kepro’s lifting equipment range. Specify capacity and stroke or cable length for quotation; confirm duty, hooks, and site power (if motorised) with Kepro. Indicative list price. Category page: https://kepro.in/pull-lifting-machine.php"
+  },
+  {
+    "id": "kepro-chain-sling",
+    "image": "assets/products/kepro-chain-sling.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Chain Sling — alloy (1–4 leg)",
+    "price": 9800,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Working load limit / leg rating (tonnes); up to 20 t range per Kepro",
+      "length": "Reach / leg length (m); chain diameter up to 32 mm per Kepro — confirm legs (1–4) on enquiry"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — heavy-duty lifting chain slings: polished, black, or galvanized alloy steel; safety factor 4:1 per Kepro. One- to four-leg configurations; capacity up to 20 tonnes; chain diameter up to 32 mm — request quote with leg count, end fittings, and tagging requirements. Indicative list price. Product page: https://kepro.in/chain-sling.php"
+  },
+  {
+    "id": "kepro-cargo-lashing",
+    "image": "assets/products/kepro-cargo-lashing.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Cargo Lashing Belt",
+    "price": 3200,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Lashing capacity (tonnes); up to 10 t per Kepro",
+      "length": "Belt / assembly length (m); up to 4 m standard, longer on request"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — cargo lashing ratchet belts: high utility, flexible, reliable two-part webbing with hardware for securing cargo during transport, shifting, or storage per Kepro. Capacity up to 10 tonnes; length up to 4 metres (custom lengths available). Indicative list price — confirm end fittings and marking with Kepro. Product page: https://kepro.in/cargo-lashing.php"
+  },
+  {
+    "id": "kepro-horizontal-clamp",
+    "image": "assets/products/kepro-horizontal-clamp.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Horizontal Lifting Clamp (pair use)",
+    "price": 14500,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Per-clamp WLL (tonnes); up to 8 t per Kepro — typically used in pairs",
+      "length": "Plate thickness / jaw gap (mm); up to 100 mm per Kepro"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — horizontal lifting clamp: lifts plate horizontally; always used in pairs per Kepro. Low-carbon, heavy-duty welded alloy steel body; tough steel jaws for secure grip. Capacity up to 8 tonnes; jaw/plate thickness up to 100 mm. Indicative list price — confirm plate grade and pairing with Kepro. Product page: https://kepro.in/horizontal-clamp.php"
+  },
+  {
+    "id": "kepro-vertical-clamp",
+    "image": "assets/products/kepro-vertical-clamp.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Vertical Lifting Clamp",
+    "price": 12800,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (tonnes); up to 8 t per Kepro",
+      "length": "Plate thickness / jaw range (mm); up to 60 mm per Kepro"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — vertical lifting clamp: lifts plate vertically; tough steel jaws and spring locks for easy attachment per Kepro. Capacity up to 8 tonnes; plate thickness up to 60 mm. Indicative list price — confirm material and thickness with Kepro. Product page: https://kepro.in/vertical-clamp.php"
+  },
+  {
+    "id": "kepro-universal-clamp",
+    "image": "assets/products/kepro-universal-clamp.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Universal Lifting Clamp",
+    "price": 15200,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (tonnes); up to 8 t per Kepro",
+      "length": "Plate thickness / jaw range (mm); up to 80 mm per Kepro"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — universal lifting clamp: versatile, safe design for varied lifting applications; combines safety and ease of use per Kepro. Capacity up to 8 tonnes; plate thickness up to 80 mm. Indicative list price — confirm orientation and plate spec with Kepro. Product page: https://kepro.in/universal-clamp.php"
+  },
+  {
+    "id": "kepro-d-shackle-screw",
+    "image": "assets/products/kepro-d-shackle-screw.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro D Shackle — screw pin",
+    "price": 850,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Working load limit (tonnes); up to 150 t range per Kepro catalogue",
+      "length": "Body / pin size reference (mm), or enter 1 if sizing by enquiry only"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — D shackle with screw pin: forged, quenched, and tempered alloy steel pin; locking system to reduce unintentional release per Kepro. For connecting slings, chains, and loads. Capacity up to 150 tonnes in range — quote with pin size, proof load, and batch traceability needs. Indicative list price. Product page: https://kepro.in/d-shackle-screw.php"
+  },
+  {
+    "id": "kepro-bow-shackle-screw",
+    "image": "assets/products/kepro-bow-shackle-screw.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Bow Shackle — screw pin",
+    "price": 920,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Working load limit (tonnes); up to 150 t range per Kepro catalogue",
+      "length": "Body / pin size reference (mm), or enter 1 if sizing by enquiry only"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — bow shackle with screw pin: forged, quenched, and tempered alloy steel pin; secure locking per Kepro. For connecting slings, chains, and loads where bow geometry helps alignment. Capacity up to 150 tonnes in range. Indicative list price — confirm WLL and pin diameter with Kepro. Product page: https://kepro.in/bow-shackle-screw.php"
+  },
+  {
+    "id": "kepro-hydraulic-stacker",
+    "image": "assets/products/kepro-hydraulic-stacker.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Hydraulic Stacker",
+    "price": 48500,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (tonnes); up to 3 t per Kepro",
+      "length": "Lift height or mast lift (mm) — confirm fork length separately on enquiry"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — hydraulic stacker: drop-forged fork with fine finish; quality hydraulic pump and cylinder for smooth, low-maintenance operation per Kepro. Capacity up to 3 tonnes. Indicative list price — confirm lift height, fork dimensions, and wheel type with Kepro. Product page: https://kepro.in/hydraulic-pallet-truck.php"
+  },
+  {
+    "id": "kepro-manual-pallet-truck",
+    "image": "assets/products/kepro-manual-pallet-truck.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Manual Pallet Truck",
+    "price": 18500,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MM"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (tonnes); up to 3 t per Kepro",
+      "length": "Fork length (mm); use overall width or lift if standard fork — note in enquiry"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — manual pallet truck: heavy-duty frame, effortless pump unit with zinc-plated piston; four-point ground contact for uneven floors; suited to logistics, warehouse, and cargo handling per Kepro. Capacity up to 3 tonnes. Indicative list price — confirm fork length, width, and wheel material with Kepro. Product page: https://kepro.in/mpallet-truck.php"
+  },
+  {
+    "id": "kepro-electric-wirerope-hoist-plus",
+    "image": "assets/products/kepro-electric-wirerope-hoist-plus.jpg",
+    "category": "machinery",
+    "machineryCategory": "lifting",
+    "brand": "Kepro",
+    "name": "Kepro Electric Wire Rope Hoist — Plus series",
+    "price": 72000,
+    "hidePrice": false,
+    "minOrder": "1 NOS",
+    "requiresClientSpecs": [
+      "capacity",
+      "length"
+    ],
+    "specUnits": {
+      "capacity": "TON",
+      "length": "MTR"
+    },
+    "specHints": {
+      "capacity": "Rated capacity (SWL), 1–30 t range per Kepro",
+      "length": "Lift height (m) as per requirement"
+    },
+    "description": "Kepro Technologies Pvt. Ltd. — Wire Rope Hoist Plus series: compact, strong, maintenance-friendly for stationary use or with trolleys per Kepro. Used across many industrial applications in India. Capacity 1 to 30 tonnes; lifting height as per customer requirement — quote with duty class, reeving, pendant / radio control, and supply voltage. Indicative list price. Product page: https://kepro.in/electric-wirerope-hoist-plus.php"
+  },
+  {
+    "id": "venus-v-410-v",
+    "image": "assets/products/venus-v-410-v.jpg",
+    "category": "consumables",
+    "consumablesCategory": "respiratory",
+    "brand": "Venus Safety",
+    "name": "VENUS V-410 V — fold-flat FFP1 respirator (valve, large filter)",
+    "price": 25,
+    "hidePrice": false,
+    "minOrder": "20 NOS",
+    "description": "Venus fold-flat filtering facepiece respirator V-410 V — “Fold Flat” style with large filter area; class FFP1 S for solid dust and mist; manufacturer states M.U.L. up to 4× OEL. Item numbers on catalogue: 14146 yellow stapled elastic, 14147 grey stapled elastic. Highlights (per Venus product literature): transparent valve vent for performance visibility and fit checks; embedded nose clip (no exposed metal); sewn head straps and cut-seal edge; anti-clogging for multi-shift use; latex-free textile elastic; multi-layer micro-fine filter media (pre-filter, fine filter, comfort layer); unique fit adjusters on the head band; Stay Cool butterfly vent valve; compatible with other PPE. Typical applications cited include painting/powder coating, pesticide spraying, sand blasting, metal fabrication, pharma bulk handling, and battery lead handling. FFP2 and FFP3 classes also exist in the range — confirm class, colour, and packing with your enquiry. Official product page: https://venusohs.com/product/venus-v-410-v/"
+  },
+  {
+    "id": "venus-v-44",
+    "image": "assets/products/venus-v-44.jpg",
+    "category": "consumables",
+    "consumablesCategory": "respiratory",
+    "brand": "Venus Safety",
+    "name": "VENUS V-44+ — fold-flat V-shape FFP1 respirator",
+    "price": 10,
+    "hidePrice": false,
+    "minOrder": "20 NOS",
+    "description": "Venus filtering facepiece respirator V-44+ — fold-flat “V” style for compact storage when not in use; class FFP1 S for solid dust and mist; manufacturer states M.U.L. up to 4× OEL. Catalogue item numbers (per Venus): 110498001 yellow stapled — bag of 50; 140490201 yellow stapled — blister pack of 3. Features highlighted on the range include lightweight construction; embedded nose clip inside the media (no metal exposure or loose parts, leak-proof fit); elastic welded/stapled outside the filter area; knitted elastic for comfort; multi-layer micro-fine filter media (pre-filter, fine filter, comfort layer); unique fit adjusters on the head band; compatibility with other PPE (eye, hearing, head). Example applications cited include grain duct and pollen dust, spinning and weaving, food processing, medical staff and patients, housekeeping, and road pollution. Confirm class, packing, and colour on enquiry. Official product page: https://venusohs.com/product/venus-v-44/"
+  }
+]

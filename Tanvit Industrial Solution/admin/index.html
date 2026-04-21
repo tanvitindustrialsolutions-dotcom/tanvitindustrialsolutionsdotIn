@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalog admin | Tanvit</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <h1>Tanvit — catalog admin</h1>
+    <p class="admin-lead">Add products and change prices (single or bulk). Uses the same <code>data/catalog.json</code> as the public site.</p>
+  </header>
+
+  <section id="loginPanel" class="admin-card">
+    <h2>Sign in</h2>
+    <form id="loginForm">
+      <label for="adminPassword">Admin password</label>
+      <input type="password" id="adminPassword" autocomplete="current-password" required>
+      <button type="submit" class="btn primary">Log in</button>
+    </form>
+    <p id="loginError" class="admin-error" role="alert" hidden></p>
+  </section>
+
+  <section id="adminPanel" class="admin-main" hidden>
+    <div class="admin-toolbar">
+      <button type="button" class="btn secondary" id="logoutBtn">Log out</button>
+      <span id="adminStatus" class="admin-status"></span>
+    </div>
+
+    <div class="admin-card">
+      <h2>Bulk price</h2>
+      <p class="hint">Tick rows below, enter a price, then apply to all selected.</p>
+      <div class="row">
+        <label for="bulkPrice">Price (INR, incl. taxes as on site)</label>
+        <input type="number" id="bulkPrice" min="0" step="1" placeholder="e.g. 2500">
+        <button type="button" class="btn primary" id="bulkApplyBtn">Apply to selected</button>
+      </div>
+      <p id="bulkMsg" class="admin-msg" role="status"></p>
+    </div>
+
+    <div class="admin-card">
+      <h2>Add product</h2>
+      <form id="addForm" class="add-form">
+        <div class="grid2">
+          <div>
+            <label for="addId">Id (slug) *</label>
+            <input id="addId" required pattern="[a-z0-9-]+" placeholder="my-new-sku">
+          </div>
+          <div>
+            <label for="addCategory">Category *</label>
+            <select id="addCategory" required>
+              <option value="consumables">consumables</option>
+              <option value="machinery">machinery</option>
+            </select>
+          </div>
+        </div>
+        <label for="addName">Name *</label>
+        <input id="addName" required maxlength="300">
+        <label for="addBrand">Brand</label>
+        <input id="addBrand" maxlength="120">
+        <div class="grid2">
+          <div>
+            <label for="addPrice">Price (INR)</label>
+            <input type="number" id="addPrice" min="0" step="1" value="0">
+          </div>
+          <div>
+            <label for="addMinOrder">Min order</label>
+            <input id="addMinOrder" value="1 NOS" maxlength="40">
+          </div>
+        </div>
+        <label for="addImage">Image path</label>
+        <input id="addImage" placeholder="assets/products/my-new-sku.jpg" maxlength="200">
+        <label><input type="checkbox" id="addHidePrice"> Hide price (quote on request)</label>
+        <label for="addDesc">Description *</label>
+        <textarea id="addDesc" required rows="4" maxlength="8000"></textarea>
+        <button type="submit" class="btn primary">Create product</button>
+      </form>
+      <p id="addMsg" class="admin-msg"></p>
+    </div>
+
+    <div class="admin-card admin-card--table">
+      <h2>Products</h2>
+      <p class="hint">Edit price in a row and click <strong>Save row</strong>, or use bulk above.</p>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th><span class="sr-only">Select</span></th>
+              <th>Id</th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Hide</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="productRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <script src="admin.js"></script>
+</body>
+</html>

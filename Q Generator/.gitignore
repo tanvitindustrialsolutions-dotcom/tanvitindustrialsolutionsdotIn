@@ -1,7 +1,0 @@
-node_modules/
-
-# Local-only dev server (not in remote repo — copy from teammate or use npm init + serve)
-package.json
-package-lock.json
-start-local.bat
-DEV-SERVER.txt

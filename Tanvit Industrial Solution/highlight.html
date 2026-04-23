@@ -80,9 +80,11 @@
         </div>
       </div>
       <div class="highlight-toolbar__row highlight-toolbar__row--secondary">
-        <div class="highlight-toolbar__theme" style="flex:1 1 22rem;max-width:38rem">
-          <label for="highlightProductPicker">Manual products (Ctrl/Cmd + click for multiple)</label>
-          <select id="highlightProductPicker" class="highlight-toolbar__select" multiple size="6" title="Select products manually"></select>
+        <div class="highlight-toolbar__theme highlight-manual-picker-wrap">
+          <label for="highlightProductSearch">Manual products</label>
+          <input id="highlightProductSearch" class="highlight-toolbar__select" type="search" placeholder="Search product name, brand, category..." />
+          <p id="highlightManualMeta" class="highlight-manual-meta">0 selected</p>
+          <div id="highlightProductPicker" class="highlight-manual-list" aria-label="Manual product selection"></div>
         </div>
       </div>
       <p class="highlight-toolbar__hint">Marketing flyer below — export <strong>PNG</strong> or <strong>PDF</strong> for sharing; use <strong>Print</strong> → Save as PDF and enable <em>Background graphics</em> for handouts.</p>

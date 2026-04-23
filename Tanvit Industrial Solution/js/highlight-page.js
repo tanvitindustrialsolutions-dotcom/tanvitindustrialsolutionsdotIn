@@ -204,15 +204,53 @@
 
   function getSelectedHighlightProducts() {
     const count = Math.min(Math.max(1, selectionState.count), 24);
+    const all = TanvitStore.PRODUCTS.slice();
+    const byId = new Map(all.map((p) => [p.id, p]));
     if (selectionState.mode === "manual") {
-      const map = new Map(TanvitStore.PRODUCTS.map((p) => [p.id, p]));
-      return selectionState.manualIds.map((id) => map.get(id)).filter(Boolean).slice(0, count);
+      const picked = [];
+      const used = new Set();
+      selectionState.manualIds.forEach((id) => {
+        const p = byId.get(id);
+        if (!p || used.has(p.id)) return;
+        used.add(p.id);
+        picked.push(p);
+      });
+      if (picked.length >= count) return picked.slice(0, count);
+      for (let i = 0; i < all.length && picked.length < count; i++) {
+        const p = all[i];
+        if (used.has(p.id)) continue;
+        used.add(p.id);
+        picked.push(p);
+      }
+      return picked;
     }
-    let pool = TanvitStore.PRODUCTS.slice();
+    let pool = all;
     if (selectionState.category) {
       pool = pool.filter((p) => categoryKeyFromProduct(p) === selectionState.category);
     }
-    return rotatePick(pool, count);
+    const picked = rotatePick(pool, count);
+    if (picked.length >= count) return picked;
+    const used = new Set(picked.map((p) => p.id));
+    const fallback = rotatePick(all, all.length);
+    for (let i = 0; i < fallback.length && picked.length < count; i++) {
+      const p = fallback[i];
+      if (used.has(p.id)) continue;
+      used.add(p.id);
+      picked.push(p);
+    }
+    return picked;
+  }
+
+  function flyerGridLayout(count) {
+    const n = Math.max(1, count);
+    if (n === 1) return { cols: 1, rows: 1 };
+    if (n === 2) return { cols: 2, rows: 1 };
+    if (n <= 4) return { cols: 2, rows: 2 };
+    if (n <= 6) return { cols: 3, rows: 2 };
+    if (n <= 9) return { cols: 3, rows: 3 };
+    const cols = 4;
+    const rows = Math.ceil(n / cols);
+    return { cols, rows };
   }
 
   function normalizeFlyerTheme(id) {
@@ -393,6 +431,7 @@
       </article>`;
       })
       .join("");
+    const layout = flyerGridLayout(products.length);
 
     root.innerHTML = `<div id="highlightExport" class="highlight-sheet highlight-sheet--flyer${flyerThemeClassAttr()}">
     <header class="highlight-flyer__mast">
@@ -418,7 +457,7 @@
         ${subtitle ? `<p class="highlight-flyer__subtitle">${esc(subtitle)}</p>` : ""}
       </div>
     </div>
-    <div class="highlight-flyer__grid">${items}</div>
+    <div class="highlight-flyer__grid" style="--hf-cols:${layout.cols};--hf-rows:${layout.rows};">${items}</div>
     <section class="highlight-flyer__cta" aria-label="How to order">
       <div class="highlight-flyer__cta-main">
         <h2 class="highlight-flyer__cta-heading">Request a wholesale quote</h2>
@@ -535,6 +574,8 @@
     const catSel = document.getElementById("highlightCategoryFilter");
     const countInput = document.getElementById("highlightCount");
     const picker = document.getElementById("highlightProductPicker");
+    const searchInput = document.getElementById("highlightProductSearch");
+    const manualMeta = document.getElementById("highlightManualMeta");
 
     const categories = availableCategories();
     if (catSel) {
@@ -548,22 +589,43 @@
       catSel.value = selectionState.category;
     }
 
-    if (picker) {
-      picker.innerHTML = TanvitStore.PRODUCTS.map((p) => {
-        const cat = TanvitStore.productCategoryLabel(p);
-        return `<option value="${escAttr(p.id)}">${esc(p.name)} (${esc(cat)})</option>`;
-      }).join("");
-      const wanted = new Set(selectionState.manualIds);
-      Array.from(picker.options).forEach((o) => {
-        o.selected = wanted.has(o.value);
+    function renderManualPicker() {
+      if (!picker) return;
+      const q = String(searchInput && searchInput.value ? searchInput.value : "")
+        .toLowerCase()
+        .trim();
+      const selected = new Set(selectionState.manualIds);
+      const list = TanvitStore.PRODUCTS.filter((p) => {
+        if (!q) return true;
+        const txt = [p.name, p.brand, p.id, TanvitStore.productCategoryLabel(p)].join(" ").toLowerCase();
+        return txt.includes(q);
       });
+      picker.innerHTML = list
+        .map((p) => {
+          const cat = TanvitStore.productCategoryLabel(p);
+          const checked = selected.has(p.id) ? " checked" : "";
+          return `<label class="highlight-manual-item">
+            <input type="checkbox" value="${escAttr(p.id)}"${checked}>
+            <span class="highlight-manual-item__text">
+              <strong>${esc(p.name)}</strong>
+              <small>${esc(cat)}</small>
+            </span>
+          </label>`;
+        })
+        .join("");
+      if (manualMeta) {
+        manualMeta.textContent = `${selectionState.manualIds.length} selected`;
+      }
     }
+
+    renderManualPicker();
     if (modeSel) modeSel.value = selectionState.mode;
     if (countInput) countInput.value = String(selectionState.count);
 
     function syncSelectionUi() {
       const isManual = selectionState.mode === "manual";
-      if (picker) picker.disabled = !isManual;
+      if (picker) picker.classList.toggle("is-disabled", !isManual);
+      if (searchInput) searchInput.disabled = !isManual;
       if (catSel) catSel.disabled = isManual;
     }
     syncSelectionUi();
@@ -606,10 +668,18 @@
         renderHighlightSheet();
       });
     }
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        renderManualPicker();
+      });
+    }
     if (picker) {
       picker.addEventListener("change", () => {
-        selectionState.manualIds = Array.from(picker.selectedOptions).map((o) => o.value);
+        selectionState.manualIds = Array.from(picker.querySelectorAll('input[type="checkbox"]:checked')).map(
+          (el) => el.value
+        );
         saveSelectionState();
+        renderManualPicker();
         renderHighlightSheet();
       });
     }

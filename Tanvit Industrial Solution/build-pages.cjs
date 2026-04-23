@@ -207,6 +207,11 @@ pages["index.html"] =
             <img src="assets/clients/hcc.svg" alt="Hindustan Construction Company" width="280" height="88" loading="lazy" decoding="async">
           </div>
         </li>
+        <li class="clients-item">
+          <div class="clients-logo">
+            <img src="assets/clients/hindustan-zinc.png" alt="Hindustan Zinc" width="280" height="88" loading="lazy" decoding="async">
+          </div>
+        </li>
       </ul>
     </div>
   </section>

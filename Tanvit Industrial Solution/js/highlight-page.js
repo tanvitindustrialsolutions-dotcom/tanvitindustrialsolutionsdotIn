@@ -132,6 +132,88 @@
 
   const STORAGE_FLYER_THEME = "tanvit_highlight_flyer_theme_v1";
   const FLYER_THEME_IDS = ["classic", "minimal", "bold", "studio"];
+  const STORAGE_HIGHLIGHT_MODE = "tanvit_highlight_mode_v1";
+  const STORAGE_HIGHLIGHT_CATEGORY = "tanvit_highlight_category_v1";
+  const STORAGE_HIGHLIGHT_COUNT = "tanvit_highlight_count_v1";
+  const STORAGE_HIGHLIGHT_MANUAL_IDS = "tanvit_highlight_manual_ids_v1";
+
+  const selectionState = {
+    mode: "category",
+    category: "",
+    count: 4,
+    manualIds: [],
+    refreshNonce: 0
+  };
+
+  function categoryKeyFromProduct(p) {
+    if (TanvitStore.productCategoryKey) return TanvitStore.productCategoryKey(p);
+    return String(p.weldingCategory || p.machineryCategory || p.consumablesCategory || "").trim();
+  }
+
+  function availableCategories() {
+    const seen = new Set();
+    const out = [];
+    TanvitStore.PRODUCTS.forEach((p) => {
+      const key = categoryKeyFromProduct(p);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push({ key, label: TanvitStore.productCategoryLabel(p) });
+    });
+    return out;
+  }
+
+  function loadSelectionState() {
+    try {
+      const mode = localStorage.getItem(STORAGE_HIGHLIGHT_MODE);
+      if (mode === "category" || mode === "manual") selectionState.mode = mode;
+      const category = localStorage.getItem(STORAGE_HIGHLIGHT_CATEGORY);
+      selectionState.category = category ? String(category) : "";
+      const count = parseInt(localStorage.getItem(STORAGE_HIGHLIGHT_COUNT) || "4", 10);
+      selectionState.count = Number.isFinite(count) ? Math.min(24, Math.max(1, count)) : 4;
+      const rawIds = localStorage.getItem(STORAGE_HIGHLIGHT_MANUAL_IDS) || "";
+      selectionState.manualIds = rawIds
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean);
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function saveSelectionState() {
+    try {
+      localStorage.setItem(STORAGE_HIGHLIGHT_MODE, selectionState.mode);
+      localStorage.setItem(STORAGE_HIGHLIGHT_CATEGORY, selectionState.category || "");
+      localStorage.setItem(STORAGE_HIGHLIGHT_COUNT, String(selectionState.count));
+      localStorage.setItem(STORAGE_HIGHLIGHT_MANUAL_IDS, selectionState.manualIds.join(","));
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
+  function rotatePick(list, count) {
+    if (!list.length) return [];
+    const d = new Date();
+    const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate() + selectionState.refreshNonce;
+    const start = Math.abs(seed) % list.length;
+    const out = [];
+    const want = Math.min(count, list.length);
+    for (let i = 0; i < want; i++) out.push(list[(start + i) % list.length]);
+    return out;
+  }
+
+  function getSelectedHighlightProducts() {
+    const count = Math.min(Math.max(1, selectionState.count), 24);
+    if (selectionState.mode === "manual") {
+      const map = new Map(TanvitStore.PRODUCTS.map((p) => [p.id, p]));
+      return selectionState.manualIds.map((id) => map.get(id)).filter(Boolean).slice(0, count);
+    }
+    let pool = TanvitStore.PRODUCTS.slice();
+    if (selectionState.category) {
+      pool = pool.filter((p) => categoryKeyFromProduct(p) === selectionState.category);
+    }
+    return rotatePick(pool, count);
+  }
 
   function normalizeFlyerTheme(id) {
     const v = String(id || "").toLowerCase().trim();
@@ -248,7 +330,7 @@
 
   function renderHighlightSheet() {
     const cfg = TanvitStore.getDailyHighlight();
-    const products = TanvitStore.getHighlightProducts();
+    const products = getSelectedHighlightProducts();
 
     if (!products.length) {
       root.innerHTML = "";
@@ -272,6 +354,12 @@
     const isoDate = now.toISOString().slice(0, 10);
 
     const title = cfg.title || "Today's highlight";
+    const modeTitle =
+      selectionState.mode === "manual"
+        ? "Manual selection"
+        : selectionState.category
+          ? "Category spotlight"
+          : "Catalog spotlight";
     const subtitle = cfg.subtitle || "";
     const footnote = cfg.footnote || "";
     const contactSection = flyerContactSectionHtml(cfg);
@@ -325,7 +413,7 @@
     </header>
     <div class="highlight-flyer__hero">
       <div class="highlight-flyer__hero-inner">
-        <p class="highlight-flyer__eyebrow">Spotlight selection</p>
+        <p class="highlight-flyer__eyebrow">${esc(modeTitle)}</p>
         <h1 class="highlight-flyer__title">${esc(title)}</h1>
         ${subtitle ? `<p class="highlight-flyer__subtitle">${esc(subtitle)}</p>` : ""}
       </div>
@@ -442,6 +530,44 @@
   }
 
   function startHighlightUi() {
+    loadSelectionState();
+    const modeSel = document.getElementById("highlightMode");
+    const catSel = document.getElementById("highlightCategoryFilter");
+    const countInput = document.getElementById("highlightCount");
+    const picker = document.getElementById("highlightProductPicker");
+
+    const categories = availableCategories();
+    if (catSel) {
+      const opts = ['<option value="">All categories</option>']
+        .concat(categories.map((c) => `<option value="${escAttr(c.key)}">${esc(c.label)}</option>`))
+        .join("");
+      catSel.innerHTML = opts;
+      if (selectionState.category && !categories.find((c) => c.key === selectionState.category)) {
+        selectionState.category = "";
+      }
+      catSel.value = selectionState.category;
+    }
+
+    if (picker) {
+      picker.innerHTML = TanvitStore.PRODUCTS.map((p) => {
+        const cat = TanvitStore.productCategoryLabel(p);
+        return `<option value="${escAttr(p.id)}">${esc(p.name)} (${esc(cat)})</option>`;
+      }).join("");
+      const wanted = new Set(selectionState.manualIds);
+      Array.from(picker.options).forEach((o) => {
+        o.selected = wanted.has(o.value);
+      });
+    }
+    if (modeSel) modeSel.value = selectionState.mode;
+    if (countInput) countInput.value = String(selectionState.count);
+
+    function syncSelectionUi() {
+      const isManual = selectionState.mode === "manual";
+      if (picker) picker.disabled = !isManual;
+      if (catSel) catSel.disabled = isManual;
+    }
+    syncSelectionUi();
+
     renderHighlightSheet();
 
     const themeSelect = document.getElementById("highlightFlyerTheme");
@@ -456,7 +582,39 @@
       });
     }
 
-    const products = TanvitStore.getHighlightProducts();
+    if (modeSel) {
+      modeSel.addEventListener("change", () => {
+        selectionState.mode = modeSel.value === "manual" ? "manual" : "category";
+        syncSelectionUi();
+        saveSelectionState();
+        renderHighlightSheet();
+      });
+    }
+    if (catSel) {
+      catSel.addEventListener("change", () => {
+        selectionState.category = catSel.value || "";
+        saveSelectionState();
+        renderHighlightSheet();
+      });
+    }
+    if (countInput) {
+      countInput.addEventListener("change", () => {
+        const n = parseInt(countInput.value || "4", 10);
+        selectionState.count = Number.isFinite(n) ? Math.min(24, Math.max(1, n)) : 4;
+        countInput.value = String(selectionState.count);
+        saveSelectionState();
+        renderHighlightSheet();
+      });
+    }
+    if (picker) {
+      picker.addEventListener("change", () => {
+        selectionState.manualIds = Array.from(picker.selectedOptions).map((o) => o.value);
+        saveSelectionState();
+        renderHighlightSheet();
+      });
+    }
+
+    const products = getSelectedHighlightProducts();
     if (!products.length) {
       return;
     }
@@ -467,9 +625,9 @@
   const refreshBtn = document.getElementById("highlightRefresh");
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
-      TanvitStore.bumpHighlightRotation();
+      selectionState.refreshNonce += 1;
       renderHighlightSheet();
-      const still = TanvitStore.getHighlightProducts();
+      const still = getSelectedHighlightProducts();
       if (!still.length) return;
       refreshBtn.focus();
     });

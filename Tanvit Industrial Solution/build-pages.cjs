@@ -465,6 +465,23 @@ pages["highlight.html"] =
       </div>
       <div class="highlight-toolbar__row highlight-toolbar__row--secondary">
         <div class="highlight-toolbar__theme">
+          <label for="highlightMode">Selection mode</label>
+          <select id="highlightMode" class="highlight-toolbar__select" title="Choose how products are selected for the flyer">
+            <option value="category">By category filter</option>
+            <option value="manual">By manual product selection</option>
+          </select>
+        </div>
+        <div class="highlight-toolbar__theme">
+          <label for="highlightCategoryFilter">Category filter</label>
+          <select id="highlightCategoryFilter" class="highlight-toolbar__select" title="Filter products by category">
+            <option value="">All categories</option>
+          </select>
+        </div>
+        <div class="highlight-toolbar__theme">
+          <label for="highlightCount">No. of products</label>
+          <input id="highlightCount" class="highlight-toolbar__select" type="number" min="1" max="24" value="4" inputmode="numeric" />
+        </div>
+        <div class="highlight-toolbar__theme">
           <label for="highlightFlyerTheme">Flyer design</label>
           <select id="highlightFlyerTheme" class="highlight-toolbar__select" title="Choose a layout style for the sheet below" aria-describedby="highlightFlyerThemeHint">
             <option value="classic">Classic — rich mast &amp; bands</option>
@@ -473,6 +490,12 @@ pages["highlight.html"] =
             <option value="studio">Studio — warm paper &amp; gold accents</option>
           </select>
           <span id="highlightFlyerThemeHint" class="highlight-toolbar__theme-hint">Saved on this device</span>
+        </div>
+      </div>
+      <div class="highlight-toolbar__row highlight-toolbar__row--secondary">
+        <div class="highlight-toolbar__theme" style="flex:1 1 22rem;max-width:38rem">
+          <label for="highlightProductPicker">Manual products (Ctrl/Cmd + click for multiple)</label>
+          <select id="highlightProductPicker" class="highlight-toolbar__select" multiple size="6" title="Select products manually"></select>
         </div>
       </div>
       <p class="highlight-toolbar__hint">Marketing flyer below — export <strong>PNG</strong> or <strong>PDF</strong> for sharing; use <strong>Print</strong> → Save as PDF and enable <em>Background graphics</em> for handouts.</p>

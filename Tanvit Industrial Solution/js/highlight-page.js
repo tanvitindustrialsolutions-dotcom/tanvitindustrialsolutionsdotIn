@@ -189,24 +189,30 @@
     return out;
   }
 
+  /** Repeat items from a pool until requested count is reached */
+  function fillFromPoolWithRepeats(pool, count, seedOffset) {
+    if (!pool.length) return [];
+    const base = rotatePick(pool, Math.min(pool.length, count));
+    if (base.length >= count) return base;
+    const out = base.slice();
+    const loop = rotatePick(pool, pool.length);
+    let i = seedOffset || 0;
+    while (out.length < count) {
+      out.push(loop[i % loop.length]);
+      i += 1;
+    }
+    return out;
+  }
+
   function getSelectedHighlightProducts() {
     const count = Math.min(Math.max(1, selectionState.count), 24);
     const all = TanvitStore.PRODUCTS.slice();
     let pool = all;
     if (selectionState.category) {
       pool = pool.filter((p) => categoryKeyFromProduct(p) === selectionState.category);
+      return fillFromPoolWithRepeats(pool, count, selectionState.refreshNonce);
     }
-    const picked = rotatePick(pool, count);
-    if (picked.length >= count) return picked;
-    const used = new Set(picked.map((p) => p.id));
-    const fallback = rotatePick(all, all.length);
-    for (let i = 0; i < fallback.length && picked.length < count; i++) {
-      const p = fallback[i];
-      if (used.has(p.id)) continue;
-      used.add(p.id);
-      picked.push(p);
-    }
-    return picked;
+    return fillFromPoolWithRepeats(pool, count, selectionState.refreshNonce);
   }
 
   function flyerGridLayout(count) {

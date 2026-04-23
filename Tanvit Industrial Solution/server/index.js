@@ -48,6 +48,32 @@ function requireAdmin(req, res, next) {
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "4mb" }));
+app.set("trust proxy", 1);
+
+function getAllowedOrigins() {
+  const raw = String(process.env.CORS_ORIGIN || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+const allowedOrigins = getAllowedOrigins();
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  }
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(
   session({
@@ -191,6 +217,10 @@ app.patch("/api/admin/products/bulk-prices", requireAdmin, (req, res) => {
 });
 
 app.use(express.static(ROOT));
+
+app.get("/healthz", (_req, res) => {
+  res.json({ ok: true });
+});
 
 const PORT = parseInt(process.env.PORT || "8787", 10);
 app.listen(PORT, () => {

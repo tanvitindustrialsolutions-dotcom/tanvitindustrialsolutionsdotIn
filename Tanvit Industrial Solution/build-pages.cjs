@@ -213,27 +213,27 @@ pages["index.html"] =
   <section class="section">
     <div class="container">
       <div class="section-title">
-        <h2>Welding categories</h2>
-        <p>Browse our welding line — from consumables and cable to machines and safety accessories.</p>
+        <h2>Product categories</h2>
+        <p>We distribute products in these categories: Electrodes and Wire, Welding Machine, PPE, Gas Cutting, Safety, Material Handling (Lifting Tools), and Fasteners &amp; Hardware.</p>
       </div>
       <div class="welding-cat-grid">
         <a class="welding-cat-card" href="shop.html?welding=electrodes">
-          <h3>Welding electrodes</h3>
+          <h3>Electrodes and Wire</h3>
           <p>Low-hydrogen and general-purpose rods for structural work and fabrication.</p>
           <span class="welding-cat-more">View products →</span>
         </a>
         <a class="welding-cat-card" href="shop.html?welding=machine">
-          <h3>Welding machine</h3>
+          <h3>Welding Machine</h3>
           <p>Inverter and industrial welders for workshop and site use.</p>
           <span class="welding-cat-more">View products →</span>
         </a>
         <a class="welding-cat-card" href="shop.html?welding=accessories">
-          <h3>Welding accessories</h3>
+          <h3>Gas Cutting</h3>
           <p>Helmets, holders, clamps, and essentials for safe welding.</p>
           <span class="welding-cat-more">View products →</span>
         </a>
         <a class="welding-cat-card" href="shop.html?welding=cable">
-          <h3>Welding cable</h3>
+          <h3>Fasteners &amp; Hardware</h3>
           <p>Flexible copper cable by the metre — specify length and lugs.</p>
           <span class="welding-cat-more">View products →</span>
         </a>
@@ -493,7 +493,7 @@ pages["shop.html"] =
   `<main>
   <div class="page-hero">
     <h1>Shop</h1>
-    <p class="lead">Explore consumables and machinery — including welding electrodes, machines, accessories, and cable. Use filters below. Listed prices are inclusive of taxes where shown (indicative). Use <strong>Get quotation</strong> on each product to email us, or read <a href="quotation.html">how to request a quote</a>.</p>
+    <p class="lead">Explore our catalog categories: Electrodes and Wire, Welding Machine, PPE, Gas Cutting, Safety, Material Handling (Lifting Tools), and Fasteners &amp; Hardware. Use filters below. Listed prices are inclusive of taxes where shown (indicative). Use <strong>Get quotation</strong> on each product to email us, or read <a href="quotation.html">how to request a quote</a>.</p>
   </div>
   <div class="container section" style="padding-top:0">
     <div id="opsNotice" class="notice" hidden>Purchasing is by <strong>quotation and direct contact</strong> — there is no shopping cart. For stock, GST invoices, and delivery, use <a href="contact.html">Contact</a> or <a href="quotation.html">Get quotation</a>.</div>
@@ -511,10 +511,10 @@ pages["shop.html"] =
         <select id="shopWeldingCategory" class="shop-select" name="weldingCategory" aria-label="Welding category">
           <option value="">All</option>
           <option value="any">All welding</option>
-          <option value="electrodes">Welding electrodes</option>
-          <option value="machine">Welding machine</option>
-          <option value="accessories">Welding accessories</option>
-          <option value="cable">Welding cable</option>
+          <option value="electrodes">Electrodes and Wire</option>
+          <option value="machine">Welding Machine</option>
+          <option value="accessories">Gas Cutting</option>
+          <option value="cable">Fasteners &amp; Hardware</option>
         </select>
       </div>
     </div>

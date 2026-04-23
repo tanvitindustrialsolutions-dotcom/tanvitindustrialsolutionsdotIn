@@ -38,20 +38,20 @@
 
 /** Labels for shop / product cards when a product sits under Welding */
 const WELDING_LABELS = {
-  electrodes: "Welding · Electrodes",
-  machine: "Welding · Machine",
-  accessories: "Welding · Accessories",
-  cable: "Welding · Cable"
+  electrodes: "Electrodes and Wire",
+  machine: "Welding Machine",
+  accessories: "Gas Cutting",
+  cable: "Fasteners & Hardware"
 };
 
 /** Labels when category is machinery but product is not welding equipment */
 const MACHINERY_LABELS = {
-  lifting: "Lifting Tool"
+  lifting: "MATERIAL HANDLING (LIFTING TOOLS)"
 };
 
 /** Labels for consumables that are not welding (e.g. PPE) */
 const CONSUMABLES_LABELS = {
-  respiratory: "Safety · Respiratory protection"
+  respiratory: "PPE / Safety"
 };
 
 const SPEC_FIELD_LABELS = {

@@ -6,7 +6,7 @@
   const selCategory = document.getElementById("shopWeldingCategory");
 
   let mainFilter = "all";
-  let weldingFilter = null;
+  let categoryFilter = null;
 
   function excerpt(text, max) {
     const t = text.trim();
@@ -18,7 +18,7 @@
     const imgPh = String(
       TanvitStore.PRODUCT_IMAGE_PLACEHOLDER || "assets/placeholder-product.svg"
     ).replace(/'/g, "\\'");
-    const list = TanvitStore.filterProducts(mainFilter, weldingFilter);
+    const list = TanvitStore.filterProducts(mainFilter, categoryFilter);
     if (!list.length) {
       const noCatalogMsg =
         '<p class="shop-empty" style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--color-text-muted)">The product catalog did not load. Ensure <code>data/catalog.json</code> is deployed and reachable, then refresh. For local admin + API use <code>npm run server</code> (see <code>docs/OPERATIONS.md</code>).</p>';
@@ -29,7 +29,7 @@
       if (reset) {
         reset.addEventListener("click", () => {
           mainFilter = "all";
-          weldingFilter = null;
+          categoryFilter = null;
           syncSelects();
           render();
           syncUrl();
@@ -83,8 +83,27 @@
   function syncSelects() {
     if (selType) selType.value = mainFilter;
     if (selCategory) {
-      selCategory.value = weldingFilter === null ? "" : weldingFilter;
+      selCategory.value = categoryFilter === null ? "" : categoryFilter;
     }
+  }
+
+  function ensureDynamicCategoryOptions() {
+    if (!selCategory) return;
+    const baseOptions = `
+      <option value="">All</option>
+      <option value="any">All categorized products</option>
+    `;
+    const seen = new Set();
+    const dynamicOptions = TanvitStore.PRODUCTS.map((p) => {
+      const key = TanvitStore.productCategoryKey(p);
+      if (!key || seen.has(key)) return "";
+      seen.add(key);
+      const label = TanvitStore.productCategoryLabel(p);
+      return `<option value="${escapeAttr(key)}">${escapeHtml(label)}</option>`;
+    })
+      .filter(Boolean)
+      .join("");
+    selCategory.innerHTML = baseOptions + dynamicOptions;
   }
 
   function syncUrl() {
@@ -92,8 +111,8 @@
     if (mainFilter === "all") url.searchParams.delete("type");
     else url.searchParams.set("type", mainFilter);
 
-    if (weldingFilter === "any") url.searchParams.set("welding", "any");
-    else if (weldingFilter) url.searchParams.set("welding", weldingFilter);
+    if (categoryFilter === "any") url.searchParams.set("welding", "any");
+    else if (categoryFilter) url.searchParams.set("welding", categoryFilter);
     else url.searchParams.delete("welding");
 
     window.history.replaceState({}, "", url.pathname + url.search);
@@ -111,7 +130,7 @@
   if (selCategory) {
     selCategory.addEventListener("change", () => {
       const v = selCategory.value;
-      weldingFilter = v === "" ? null : v;
+      categoryFilter = v === "" ? null : v;
       syncSelects();
       render();
       syncUrl();
@@ -123,10 +142,11 @@
   if (t === "consumables" || t === "machinery") mainFilter = t;
 
   const w = params.get("welding");
-  if (w === "any") weldingFilter = "any";
-  else if (["electrodes", "machine", "accessories", "cable"].includes(w)) weldingFilter = w;
+  if (w === "any") categoryFilter = "any";
+  else if (w && w.trim()) categoryFilter = w.trim();
 
   function bootShop() {
+    ensureDynamicCategoryOptions();
     syncSelects();
     render();
   }

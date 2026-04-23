@@ -38,20 +38,19 @@
 
 /** Labels for shop / product cards when a product sits under Welding */
 const WELDING_LABELS = {
-  electrodes: "Electrodes and Wire",
-  machine: "Welding Machine",
-  accessories: "Gas Cutting",
-  cable: "Fasteners & Hardware"
+  electrodes: "Welding · Electrodes and Wire",
+  machine: "Welding · Machine",
+  accessories: "Welding · Accessories"
 };
 
 /** Labels when category is machinery but product is not welding equipment */
 const MACHINERY_LABELS = {
-  lifting: "MATERIAL HANDLING (LIFTING TOOLS)"
+  lifting: "Material Handling · Lifting Tools"
 };
 
 /** Labels for consumables that are not welding (e.g. PPE) */
 const CONSUMABLES_LABELS = {
-  respiratory: "PPE / Safety"
+  respiratory: "PPE · Respiratory"
 };
 
 const SPEC_FIELD_LABELS = {
@@ -120,13 +119,38 @@ function productCategoryLabel(p) {
   if (p.consumablesCategory && CONSUMABLES_LABELS[p.consumablesCategory]) {
     return CONSUMABLES_LABELS[p.consumablesCategory];
   }
+  if (p.consumablesCategory) {
+    return "Consumables · " + humanizeCategoryKey(p.consumablesCategory);
+  }
   if (p.weldingCategory && WELDING_LABELS[p.weldingCategory]) {
     return WELDING_LABELS[p.weldingCategory];
+  }
+  if (p.weldingCategory) {
+    return "Welding · " + humanizeCategoryKey(p.weldingCategory);
   }
   if (p.category === "machinery" && p.machineryCategory && MACHINERY_LABELS[p.machineryCategory]) {
     return MACHINERY_LABELS[p.machineryCategory];
   }
+  if (p.category === "machinery" && p.machineryCategory) {
+    return "Machinery · " + humanizeCategoryKey(p.machineryCategory);
+  }
   return p.category === "consumables" ? "Consumables" : "Machinery";
+}
+
+/** Turn a category key like "gas_cutting" into "Gas Cutting" */
+function humanizeCategoryKey(key) {
+  return String(key || "")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+    .join(" ");
+}
+
+/** Stable category key used for shop filter options */
+function productCategoryKey(p) {
+  if (!p || typeof p !== "object") return "";
+  return String(p.weldingCategory || p.machineryCategory || p.consumablesCategory || "").trim();
 }
 
 /** Display brand line for cards and tables; empty string if missing */
@@ -236,20 +260,25 @@ function buildProductQuotationEmail(productId, qty, spec) {
 
 /**
  * @param {string} mainFilter - "all" | "consumables" | "machinery"
- * @param {string|null} weldingFilter - null | "any" | "electrodes" | "machine" | "accessories" | "cable"
+ * @param {string|null} categoryFilter - null | "any" | "electrodes" | "machine" | "accessories" | "lifting" | "respiratory"
  */
-function filterProducts(mainFilter, weldingFilter) {
+function filterProducts(mainFilter, categoryFilter) {
   const main = mainFilter || "all";
-  const weld = weldingFilter === undefined || weldingFilter === "" ? null : weldingFilter;
+  const cat = categoryFilter === undefined || categoryFilter === "" ? null : categoryFilter;
 
   let list = PRODUCTS.slice();
   if (main !== "all") {
     list = list.filter((p) => p.category === main);
   }
-  if (weld === "any") {
-    list = list.filter((p) => p.weldingCategory);
-  } else if (weld) {
-    list = list.filter((p) => p.weldingCategory === weld);
+  if (cat === "any") {
+    list = list.filter((p) => p.weldingCategory || p.machineryCategory || p.consumablesCategory);
+  } else if (cat) {
+    list = list.filter(
+      (p) =>
+        p.weldingCategory === cat ||
+        p.machineryCategory === cat ||
+        p.consumablesCategory === cat
+    );
   }
   return list;
 }
@@ -348,6 +377,7 @@ window.TanvitStore = {
   MACHINERY_LABELS,
   PRODUCT_IMAGE_PLACEHOLDER,
   productCategoryLabel,
+  productCategoryKey,
   productBrand,
   productMinOrder,
   productHidePrice,

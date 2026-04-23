@@ -1908,66 +1908,6 @@ main {
   color: #57534e;
 }
 
-.highlight-manual-picker-wrap {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.45rem;
-}
-
-.highlight-manual-meta {
-  margin: 0;
-  font-size: 0.78rem;
-  color: #78716c;
-}
-
-.highlight-manual-list {
-  max-height: 15rem;
-  overflow: auto;
-  border: 1px solid #d6d3d1;
-  border-radius: 10px;
-  background: #fff;
-  padding: 0.3rem;
-}
-
-.highlight-manual-list.is-disabled {
-  opacity: 0.55;
-  pointer-events: none;
-}
-
-.highlight-manual-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
-  padding: 0.45rem 0.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.highlight-manual-item:hover {
-  background: #f5f5f4;
-}
-
-.highlight-manual-item input {
-  margin-top: 0.2rem;
-}
-
-.highlight-manual-item__text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.highlight-manual-item__text strong {
-  font-size: 0.82rem;
-  line-height: 1.25;
-  color: #1c1917;
-}
-
-.highlight-manual-item__text small {
-  font-size: 0.74rem;
-  color: #78716c;
-}
-
 .btn-wa {
   display: inline-flex;
   align-items: center;

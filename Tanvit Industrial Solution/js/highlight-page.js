@@ -132,16 +132,12 @@
 
   const STORAGE_FLYER_THEME = "tanvit_highlight_flyer_theme_v1";
   const FLYER_THEME_IDS = ["classic", "minimal", "bold", "studio"];
-  const STORAGE_HIGHLIGHT_MODE = "tanvit_highlight_mode_v1";
   const STORAGE_HIGHLIGHT_CATEGORY = "tanvit_highlight_category_v1";
   const STORAGE_HIGHLIGHT_COUNT = "tanvit_highlight_count_v1";
-  const STORAGE_HIGHLIGHT_MANUAL_IDS = "tanvit_highlight_manual_ids_v1";
 
   const selectionState = {
-    mode: "category",
     category: "",
     count: 4,
-    manualIds: [],
     refreshNonce: 0
   };
 
@@ -164,17 +160,10 @@
 
   function loadSelectionState() {
     try {
-      const mode = localStorage.getItem(STORAGE_HIGHLIGHT_MODE);
-      if (mode === "category" || mode === "manual") selectionState.mode = mode;
       const category = localStorage.getItem(STORAGE_HIGHLIGHT_CATEGORY);
       selectionState.category = category ? String(category) : "";
       const count = parseInt(localStorage.getItem(STORAGE_HIGHLIGHT_COUNT) || "4", 10);
       selectionState.count = Number.isFinite(count) ? Math.min(24, Math.max(1, count)) : 4;
-      const rawIds = localStorage.getItem(STORAGE_HIGHLIGHT_MANUAL_IDS) || "";
-      selectionState.manualIds = rawIds
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean);
     } catch (_) {
       /* ignore */
     }
@@ -182,10 +171,8 @@
 
   function saveSelectionState() {
     try {
-      localStorage.setItem(STORAGE_HIGHLIGHT_MODE, selectionState.mode);
       localStorage.setItem(STORAGE_HIGHLIGHT_CATEGORY, selectionState.category || "");
       localStorage.setItem(STORAGE_HIGHLIGHT_COUNT, String(selectionState.count));
-      localStorage.setItem(STORAGE_HIGHLIGHT_MANUAL_IDS, selectionState.manualIds.join(","));
     } catch (_) {
       /* ignore */
     }
@@ -205,25 +192,6 @@
   function getSelectedHighlightProducts() {
     const count = Math.min(Math.max(1, selectionState.count), 24);
     const all = TanvitStore.PRODUCTS.slice();
-    const byId = new Map(all.map((p) => [p.id, p]));
-    if (selectionState.mode === "manual") {
-      const picked = [];
-      const used = new Set();
-      selectionState.manualIds.forEach((id) => {
-        const p = byId.get(id);
-        if (!p || used.has(p.id)) return;
-        used.add(p.id);
-        picked.push(p);
-      });
-      if (picked.length >= count) return picked.slice(0, count);
-      for (let i = 0; i < all.length && picked.length < count; i++) {
-        const p = all[i];
-        if (used.has(p.id)) continue;
-        used.add(p.id);
-        picked.push(p);
-      }
-      return picked;
-    }
     let pool = all;
     if (selectionState.category) {
       pool = pool.filter((p) => categoryKeyFromProduct(p) === selectionState.category);
@@ -392,12 +360,7 @@
     const isoDate = now.toISOString().slice(0, 10);
 
     const title = cfg.title || "Today's highlight";
-    const modeTitle =
-      selectionState.mode === "manual"
-        ? "Manual selection"
-        : selectionState.category
-          ? "Category spotlight"
-          : "Catalog spotlight";
+    const modeTitle = selectionState.category ? "Category spotlight" : "Catalog spotlight";
     const subtitle = cfg.subtitle || "";
     const footnote = cfg.footnote || "";
     const contactSection = flyerContactSectionHtml(cfg);
@@ -570,12 +533,8 @@
 
   function startHighlightUi() {
     loadSelectionState();
-    const modeSel = document.getElementById("highlightMode");
     const catSel = document.getElementById("highlightCategoryFilter");
     const countInput = document.getElementById("highlightCount");
-    const picker = document.getElementById("highlightProductPicker");
-    const searchInput = document.getElementById("highlightProductSearch");
-    const manualMeta = document.getElementById("highlightManualMeta");
 
     const categories = availableCategories();
     if (catSel) {
@@ -589,46 +548,7 @@
       catSel.value = selectionState.category;
     }
 
-    function renderManualPicker() {
-      if (!picker) return;
-      const q = String(searchInput && searchInput.value ? searchInput.value : "")
-        .toLowerCase()
-        .trim();
-      const selected = new Set(selectionState.manualIds);
-      const list = TanvitStore.PRODUCTS.filter((p) => {
-        if (!q) return true;
-        const txt = [p.name, p.brand, p.id, TanvitStore.productCategoryLabel(p)].join(" ").toLowerCase();
-        return txt.includes(q);
-      });
-      picker.innerHTML = list
-        .map((p) => {
-          const cat = TanvitStore.productCategoryLabel(p);
-          const checked = selected.has(p.id) ? " checked" : "";
-          return `<label class="highlight-manual-item">
-            <input type="checkbox" value="${escAttr(p.id)}"${checked}>
-            <span class="highlight-manual-item__text">
-              <strong>${esc(p.name)}</strong>
-              <small>${esc(cat)}</small>
-            </span>
-          </label>`;
-        })
-        .join("");
-      if (manualMeta) {
-        manualMeta.textContent = `${selectionState.manualIds.length} selected`;
-      }
-    }
-
-    renderManualPicker();
-    if (modeSel) modeSel.value = selectionState.mode;
     if (countInput) countInput.value = String(selectionState.count);
-
-    function syncSelectionUi() {
-      const isManual = selectionState.mode === "manual";
-      if (picker) picker.classList.toggle("is-disabled", !isManual);
-      if (searchInput) searchInput.disabled = !isManual;
-      if (catSel) catSel.disabled = isManual;
-    }
-    syncSelectionUi();
 
     renderHighlightSheet();
 
@@ -644,14 +564,6 @@
       });
     }
 
-    if (modeSel) {
-      modeSel.addEventListener("change", () => {
-        selectionState.mode = modeSel.value === "manual" ? "manual" : "category";
-        syncSelectionUi();
-        saveSelectionState();
-        renderHighlightSheet();
-      });
-    }
     if (catSel) {
       catSel.addEventListener("change", () => {
         selectionState.category = catSel.value || "";
@@ -668,22 +580,6 @@
         renderHighlightSheet();
       });
     }
-    if (searchInput) {
-      searchInput.addEventListener("input", () => {
-        renderManualPicker();
-      });
-    }
-    if (picker) {
-      picker.addEventListener("change", () => {
-        selectionState.manualIds = Array.from(picker.querySelectorAll('input[type="checkbox"]:checked')).map(
-          (el) => el.value
-        );
-        saveSelectionState();
-        renderManualPicker();
-        renderHighlightSheet();
-      });
-    }
-
     const products = getSelectedHighlightProducts();
     if (!products.length) {
       return;

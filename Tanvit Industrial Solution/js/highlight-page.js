@@ -189,19 +189,13 @@
     return out;
   }
 
-  /** Repeat items from a pool until requested count is reached */
-  function fillFromPoolWithRepeats(pool, count, seedOffset) {
+  /** Pick unique items up to requested count (no repeats). */
+  function pickFromPool(pool, count, seedOffset) {
     if (!pool.length) return [];
-    const base = rotatePick(pool, Math.min(pool.length, count));
-    if (base.length >= count) return base;
-    const out = base.slice();
-    const loop = rotatePick(pool, pool.length);
-    let i = seedOffset || 0;
-    while (out.length < count) {
-      out.push(loop[i % loop.length]);
-      i += 1;
-    }
-    return out;
+    const rotated = rotatePick(pool, pool.length);
+    const start = Math.max(0, seedOffset || 0) % rotated.length;
+    const ordered = rotated.slice(start).concat(rotated.slice(0, start));
+    return ordered.slice(0, Math.min(count, ordered.length));
   }
 
   function getSelectedHighlightProducts() {
@@ -210,9 +204,9 @@
     let pool = all;
     if (selectionState.category) {
       pool = pool.filter((p) => categoryKeyFromProduct(p) === selectionState.category);
-      return fillFromPoolWithRepeats(pool, count, selectionState.refreshNonce);
+      return pickFromPool(pool, count, selectionState.refreshNonce);
     }
-    return fillFromPoolWithRepeats(pool, count, selectionState.refreshNonce);
+    return pickFromPool(pool, count, selectionState.refreshNonce);
   }
 
   function flyerGridLayout(count) {

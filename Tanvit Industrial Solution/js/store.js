@@ -40,7 +40,8 @@
 const WELDING_LABELS = {
   electrodes: "Welding · Electrodes and Wire",
   machine: "Welding · Machine",
-  accessories: "Welding · Accessories"
+  accessories: "Welding · Accessories",
+  cable: "Welding · Cable"
 };
 
 /** Labels when category is machinery but product is not welding equipment */
@@ -60,6 +61,51 @@ const SPEC_FIELD_LABELS = {
 
 /** Loaded at runtime from /data/catalog.json via js/catalog-loader.js (see server/ for admin API). */
 let PRODUCTS = [];
+
+/** composite string (e.g. w:electrodes, parts:bolts) → display label from data/category-taxonomy.json */
+let TAXONOMY_COMPOSITE_LABELS = Object.create(null);
+
+const RESERVED_CATEGORY_FIELDS = new Set(["weldingCategory", "machineryCategory", "consumablesCategory"]);
+
+/** Build taxonomy composite key for labels (must match admin compositeFromProduct). */
+function compositeKeyFromProduct(p) {
+  if (!p || typeof p !== "object") return "w:electrodes";
+  if (p.category === "machinery" && p.machineryCategory) return "m:" + String(p.machineryCategory);
+  if (p.consumablesCategory) return "c:" + String(p.consumablesCategory);
+  if (p.weldingCategory) return "w:" + String(p.weldingCategory);
+  const dynKeys = Object.keys(p)
+    .filter(
+      (k) =>
+        k.endsWith("Category") &&
+        !RESERVED_CATEGORY_FIELDS.has(k) &&
+        p[k] != null &&
+        String(p[k]).trim()
+    )
+    .sort();
+  if (dynKeys.length) {
+    const k = dynKeys[0];
+    const prefix = k.replace(/Category$/, "");
+    return prefix + ":" + String(p[k]).trim();
+  }
+  return p.category === "machinery" ? "m:lifting" : "w:electrodes";
+}
+
+function ingestCategoryTaxonomy(doc) {
+  TAXONOMY_COMPOSITE_LABELS = Object.create(null);
+  if (!doc || typeof doc !== "object" || !doc.subcategoriesByMain) return;
+  const byMain = doc.subcategoriesByMain;
+  const keys = Object.keys(byMain);
+  for (let i = 0; i < keys.length; i++) {
+    const arr = byMain[keys[i]];
+    if (!Array.isArray(arr)) continue;
+    for (let j = 0; j < arr.length; j++) {
+      const row = arr[j];
+      if (row && row.composite && row.label != null) {
+        TAXONOMY_COMPOSITE_LABELS[String(row.composite)] = String(row.label);
+      }
+    }
+  }
+}
 
 
 /**
@@ -116,6 +162,10 @@ function money(n) {
 }
 
 function productCategoryLabel(p) {
+  const compositeKey = compositeKeyFromProduct(p);
+  if (TAXONOMY_COMPOSITE_LABELS[compositeKey]) {
+    return TAXONOMY_COMPOSITE_LABELS[compositeKey];
+  }
   if (p.consumablesCategory && CONSUMABLES_LABELS[p.consumablesCategory]) {
     return CONSUMABLES_LABELS[p.consumablesCategory];
   }
@@ -134,7 +184,10 @@ function productCategoryLabel(p) {
   if (p.category === "machinery" && p.machineryCategory) {
     return "Machinery · " + humanizeCategoryKey(p.machineryCategory);
   }
-  return p.category === "consumables" ? "Consumables" : "Machinery";
+  const mc = p.category ? String(p.category) : "";
+  if (mc === "consumables") return "Consumables";
+  if (mc === "machinery") return "Machinery";
+  return mc ? humanizeCategoryKey(mc) : "Catalog";
 }
 
 /** Turn a category key like "gas_cutting" into "Gas Cutting" */
@@ -150,7 +203,20 @@ function humanizeCategoryKey(key) {
 /** Stable category key used for shop filter options */
 function productCategoryKey(p) {
   if (!p || typeof p !== "object") return "";
-  return String(p.weldingCategory || p.machineryCategory || p.consumablesCategory || "").trim();
+  if (p.machineryCategory) return String(p.machineryCategory).trim();
+  if (p.consumablesCategory) return String(p.consumablesCategory).trim();
+  if (p.weldingCategory) return String(p.weldingCategory).trim();
+  const dynKeys = Object.keys(p)
+    .filter(
+      (k) =>
+        k.endsWith("Category") &&
+        !RESERVED_CATEGORY_FIELDS.has(k) &&
+        p[k] != null &&
+        String(p[k]).trim()
+    )
+    .sort();
+  if (dynKeys.length) return String(p[dynKeys[0]]).trim();
+  return "";
 }
 
 /** Display brand line for cards and tables; empty string if missing */
@@ -282,12 +348,13 @@ function filterProducts(mainFilter, categoryFilter) {
   if (cat === "any") {
     list = list.filter((p) => p.weldingCategory || p.machineryCategory || p.consumablesCategory);
   } else if (cat) {
-    list = list.filter(
-      (p) =>
-        p.weldingCategory === cat ||
-        p.machineryCategory === cat ||
-        p.consumablesCategory === cat
-    );
+    list = list.filter((p) => {
+      if (p.weldingCategory === cat || p.machineryCategory === cat || p.consumablesCategory === cat) return true;
+      for (const k of Object.keys(p)) {
+        if (k.endsWith("Category") && p[k] === cat) return true;
+      }
+      return false;
+    });
   }
   return list;
 }
@@ -381,6 +448,7 @@ function getHighlightProducts() {
 window.TanvitStore = {
   PRODUCTS,
   ingestProducts,
+  ingestCategoryTaxonomy,
   DAILY_HIGHLIGHT,
   WELDING_LABELS,
   MACHINERY_LABELS,

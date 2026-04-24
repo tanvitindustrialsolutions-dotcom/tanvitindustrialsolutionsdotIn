@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "copy": {
+    "homeClientsHeading": "Our valued customers",
+    "homeClientsSub": "Trusted by major cement, construction, and industrial names across India."
+  },
+  "slides": [
+    {
+      "image": "assets/slider/slide-1.png",
+      "alt": "Industrial power tools — drills, grinders, saws, and related equipment",
+      "photoCenter": true,
+      "eyebrow": "Power tools & equipment",
+      "title": "Reliable consumables & machinery for your plant",
+      "tagline": "A Trusted partner for Industry — from welding floors to machine shops, we help you keep production moving.",
+      "primaryLabel": "Browse the catalog",
+      "primaryHref": "shop.html",
+      "secondaryLabel": "Talk to us",
+      "secondaryHref": "contact.html"
+    },
+    {
+      "image": "assets/slider/slide-2.jpg",
+      "alt": "",
+      "photoCenter": false,
+      "eyebrow": "Consumables",
+      "title": "Everything your shop reorders, week after week",
+      "tagline": "Welding consumables, tools, and industrial supplies — specified clearly so you can request a quote with confidence.",
+      "primaryLabel": "Shop consumables",
+      "primaryHref": "shop.html",
+      "secondaryLabel": "Request a quote",
+      "secondaryHref": "contact.html"
+    },
+    {
+      "image": "assets/slider/slide-3.jpg",
+      "alt": "",
+      "photoCenter": false,
+      "eyebrow": "Machinery",
+      "title": "Equipment that fits your process & budget",
+      "tagline": "Machinery and lifting tools for fabrication and plant — we help you compare options and plan for maintenance.",
+      "primaryLabel": "View machinery",
+      "primaryHref": "shop.html",
+      "secondaryLabel": "Speak to sales",
+      "secondaryHref": "contact.html"
+    }
+  ],
+  "pages": {
+    "about": {
+      "metaDescription": "Learn about Tanvit Industrial Solution — our mission, what we supply, and how we support industrial customers across India.",
+      "heroTitle": "About Tanvit",
+      "heroLead": "We are an industrial supply partner focused on consumables and machinery — helping you reduce downtime and keep standards high on the shop floor.",
+      "sectionTitle": "A dependable industrial supply partner",
+      "sectionSub": "We support manufacturers, contractors, and maintenance teams with reliable sourcing, clear product communication, and responsive service.",
+      "cards": [
+        {
+          "title": "Who we are",
+          "bodyHtml": "<p><strong>Tanvit Industrial Solution</strong> serves manufacturers, fabricators, contractors, and maintenance teams that need dependable products without unnecessary complexity. Our name stands for a straightforward promise: quality-aligned sourcing, honest timelines, and responsive service.</p>"
+        },
+        {
+          "title": "What we supply",
+          "bodyHtml": "<p>Our portfolio spans <strong>industrial consumables</strong> — such as welding electrodes and wires, grinding and cutting discs, lubricants, hand tools, and maintenance consumables — and <strong>machinery &amp; equipment</strong> including pumps, compressors, and related equipment for production and site use.</p>"
+        },
+        {
+          "title": "How we work",
+          "bodyHtml": "<p>We combine a digital catalog with direct support. Browse and order online when you know exactly what you need; contact us when you want recommendations, bulk quotations, or delivery timelines that match your project.</p>"
+        },
+        {
+          "title": "Looking ahead",
+          "bodyHtml": "<p>We are expanding our range and strengthening logistics so Tanvit can grow with your organisation. Whether it is your first order or your hundredth, we aim to be <em>A Trusted partner for Industry</em>.</p>"
+        }
+      ]
+    },
+    "contact": {
+      "metaDescription": "Contact Tanvit for product enquiries, quotations, order support, and partnership discussions. Industrial consumables and machinery.",
+      "heroTitle": "Contact us",
+      "heroLead": "We are glad to help with catalog questions, quotations, order status, and partnership enquiries. Reach out by phone or email — we typically respond within one business day.",
+      "phone": "+91-9414110440",
+      "phoneTel": "+919414110440",
+      "email": "tanvitindustrialsolutions@gmail.com",
+      "address": "61-Pannadhai Colony, Chittorgarh, Rajasthan — 312001",
+      "hours": "Monday to Saturday, 10:00 – 18:00 IST (excluding public holidays)",
+      "messageBoxTitle": "What to include in your message",
+      "messageIntro": "For the fastest help, please share:",
+      "messageBullets": [
+        "Company name and contact person",
+        "Product name or category, quantity, and delivery location",
+        "Whether you need a formal quotation or GST invoice details"
+      ],
+      "emailButtonLabel": "Send an email",
+      "emailButtonSubject": "Enquiry from website"
+    }
+  }
+}

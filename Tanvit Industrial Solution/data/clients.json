@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "clients": [
+    { "id": "wonder-cement", "name": "Wonder Cement Ltd", "logo": "assets/clients/wonder-cement.png", "alt": "Wonder Cement Ltd", "width": 280, "height": 88 },
+    { "id": "ultratech", "name": "UltraTech Cement", "logo": "assets/clients/ultratech.png", "alt": "UltraTech Cement", "width": 280, "height": 88 },
+    { "id": "nuvoco", "name": "Nuvoco", "logo": "assets/clients/nuvoco.png", "alt": "Nuvoco", "width": 280, "height": 88 },
+    { "id": "birla", "name": "Birla Corporation", "logo": "assets/clients/birla.jpg", "alt": "Birla Corporation", "width": 280, "height": 88 },
+    { "id": "monomark", "name": "Monomark Engineering", "logo": "assets/clients/monomark.png", "alt": "Monomark Engineering", "width": 280, "height": 88 },
+    { "id": "hcc", "name": "Hindustan Construction Company", "logo": "assets/clients/hcc.svg", "alt": "Hindustan Construction Company", "width": 280, "height": 88 },
+    { "id": "hindustan-zinc", "name": "Hindustan Zinc", "logo": "assets/clients/hindustan-zinc.png", "alt": "Hindustan Zinc", "width": 280, "height": 88 },
+    { "id": "jk-cement", "name": "JK Cement", "logo": "assets/clients/jk-cement.png", "alt": "JK Cement", "width": 280, "height": 88 }
+  ]
+}

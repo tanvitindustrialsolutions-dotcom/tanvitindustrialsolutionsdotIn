@@ -7,8 +7,8 @@
  */
 window.TanvitSiteConfig = {
   web3formsAccessKey: "d180b514-75a7-40ed-8334-161b95cf046c",
-  // Set this to your deployed admin/API host to load live catalog updates.
-  // Example: "https://tanvit-admin.onrender.com/api/catalog"
+  // Leave empty when the public site and Node server share the same origin (default: npm start).
+  // Only set if catalog is served from another URL (advanced split-host setups).
   catalogUrl: "",
   // Production should keep this false.
   // Set true in test/staging when you want to show operations notice in shop.

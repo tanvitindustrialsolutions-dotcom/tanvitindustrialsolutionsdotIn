@@ -21,7 +21,7 @@
     const list = TanvitStore.filterProducts(mainFilter, categoryFilter);
     if (!list.length) {
       const noCatalogMsg =
-        '<p class="shop-empty" style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--color-text-muted)">The product catalog did not load. Ensure <code>data/catalog.json</code> is deployed and reachable, then refresh. For local admin + API use <code>npm run server</code> (see <code>docs/OPERATIONS.md</code>).</p>';
+        '<p class="shop-empty" style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--color-text-muted)">The product catalog did not load. Ensure <code>data/catalog.json</code> is deployed and reachable, then refresh. For local admin + API use <code>npm start</code> (see <code>docs/OPERATIONS.md</code>).</p>';
       const noMatchMsg =
         '<p class="shop-empty" style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--color-text-muted)">No products match these filters. Try <button type="button" class="link-like" id="shopResetFilters">clearing filters</button> or browse all products.</p>';
       grid.innerHTML = !TanvitStore.PRODUCTS.length ? noCatalogMsg : noMatchMsg;
@@ -84,6 +84,36 @@
     return escapeHtml(s).replace(/"/g, "&quot;");
   }
 
+  function humanizeMainLabel(slug) {
+    return String(slug || "")
+      .replace(/[_-]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : ""))
+      .join(" ");
+  }
+
+  function ensureDynamicMainTypeOptions() {
+    if (!selType) return;
+    const seen = new Set(["all", "consumables", "machinery"]);
+    const extras = [];
+    TanvitStore.PRODUCTS.forEach((p) => {
+      const c = p && p.category ? String(p.category).trim() : "";
+      if (c && !seen.has(c)) {
+        seen.add(c);
+        extras.push(c);
+      }
+    });
+    extras.sort();
+    const prev = selType.value;
+    selType.innerHTML =
+      `<option value="all">All products</option>` +
+      `<option value="consumables">Consumables</option>` +
+      `<option value="machinery">Machinery</option>` +
+      extras.map((c) => `<option value="${escapeAttr(c)}">${escapeHtml(humanizeMainLabel(c))}</option>`).join("");
+    if (prev && [...selType.options].some((o) => o.value === prev)) selType.value = prev;
+  }
+
   function syncSelects() {
     if (selType) selType.value = mainFilter;
     if (selCategory) {
@@ -144,12 +174,14 @@
   const params = new URLSearchParams(window.location.search);
   const t = params.get("type");
   if (t === "consumables" || t === "machinery") mainFilter = t;
+  else if (t && t.trim() && t !== "all") mainFilter = t.trim();
 
   const w = params.get("welding");
   if (w === "any") categoryFilter = "any";
   else if (w && w.trim()) categoryFilter = w.trim();
 
   function bootShop() {
+    ensureDynamicMainTypeOptions();
     ensureDynamicCategoryOptions();
     syncSelects();
     render();

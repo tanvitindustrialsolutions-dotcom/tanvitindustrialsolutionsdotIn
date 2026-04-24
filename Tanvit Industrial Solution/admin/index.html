@@ -8,8 +8,8 @@
 </head>
 <body>
   <header class="admin-header">
-    <h1>Tanvit — catalog admin</h1>
-    <p class="admin-lead">Add products and change prices (single or bulk). Uses the same <code>data/catalog.json</code> as the public site.</p>
+    <h1>Tanvit — site admin</h1>
+    <p class="admin-lead">Same website as the public pages — URL path is <code>/admin/</code> only (no separate domain). Edit products and valued clients here; use <strong>Site &amp; clients</strong> for the home page (hero and text). The live server must run <code>npm start</code> (or <code>npm run server</code>) so saves go to the <code>data/</code> folder on that machine.</p>
   </header>
 
   <section id="loginPanel" class="admin-card">
@@ -28,6 +28,13 @@
       <span id="adminStatus" class="admin-status"></span>
     </div>
 
+    <div class="admin-tabs" role="tablist" aria-label="Admin sections">
+      <button type="button" class="admin-tab is-active" role="tab" id="tabProducts" aria-selected="true" data-panel="panelProducts">Products</button>
+      <button type="button" class="admin-tab" role="tab" id="tabSite" aria-selected="false" data-panel="panelSite">Site &amp; clients</button>
+    </div>
+
+    <div id="panelProducts" class="admin-tab-panel" role="tabpanel" aria-labelledby="tabProducts">
+
     <div class="admin-card">
       <h2>Bulk price</h2>
       <p class="hint">Tick rows below, enter a price, then apply to all selected.</p>
@@ -40,6 +47,22 @@
     </div>
 
     <div class="admin-card">
+      <h2>Category list (optional)</h2>
+      <p class="hint">Main and sub category <strong>dropdowns</strong> on this page use a saved list. You only need this if you want new categories or different labels. Otherwise you can leave it closed.</p>
+      <details class="admin-details">
+        <summary>Advanced: edit category list as JSON</summary>
+        <p class="hint">Add mains under <code>mainCategories</code>, subs under <code>subcategoriesByMain</code>. Composites: <code>w:</code> welding, <code>c:</code> consumables/PPE, <code>m:</code> machinery, or <code>parts:key</code> → <code>partsCategory</code> on the product.</p>
+        <label for="categoryTaxonomyJson">Category taxonomy (JSON)</label>
+        <textarea id="categoryTaxonomyJson" class="admin-json" spellcheck="false" rows="14"></textarea>
+        <div class="admin-row-btns">
+          <button type="button" class="btn secondary" id="categoryTaxonomyReloadBtn">Reload from server</button>
+          <button type="button" class="btn primary" id="categoryTaxonomySaveBtn">Save taxonomy</button>
+        </div>
+        <p id="categoryTaxonomyMsg" class="admin-msg" role="status"></p>
+      </details>
+    </div>
+
+    <div class="admin-card">
       <h2>Add product</h2>
       <form id="addForm" class="add-form">
         <div class="grid2">
@@ -48,13 +71,12 @@
             <input id="addId" required pattern="[a-z0-9-]+" placeholder="my-new-sku">
           </div>
           <div>
-            <label for="addCategory">Category *</label>
-            <select id="addCategory" required>
-              <option value="consumables">consumables</option>
-              <option value="machinery">machinery</option>
-            </select>
+            <label for="addMainCategory">Main category *</label>
+            <select id="addMainCategory" required></select>
           </div>
         </div>
+        <label for="addSubCategory">Sub category *</label>
+        <select id="addSubCategory" required></select>
         <label for="addName">Name *</label>
         <input id="addName" required maxlength="300">
         <label for="addBrand">Brand</label>
@@ -69,8 +91,14 @@
             <input id="addMinOrder" value="1 NOS" maxlength="40">
           </div>
         </div>
-        <label for="addImage">Image path</label>
+        <label for="addImage">Product image path</label>
         <input id="addImage" placeholder="assets/products/my-new-sku.jpg" maxlength="200">
+        <div class="admin-upload-inline">
+          <label for="addImageFile">Upload file → products folder</label>
+          <input type="file" id="addImageFile" accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,.jpg,.jpeg,.png,.webp,.gif,.svg">
+          <button type="button" class="btn secondary" id="addImageUploadBtn">Upload &amp; set path</button>
+          <span id="addImageUploadMsg" class="admin-msg admin-msg--inline"></span>
+        </div>
         <label><input type="checkbox" id="addHidePrice"> Hide price (quote on request)</label>
         <label for="addDesc">Description *</label>
         <textarea id="addDesc" required rows="4" maxlength="8000"></textarea>
@@ -81,7 +109,9 @@
 
     <div class="admin-card admin-card--table">
       <h2>Products</h2>
-      <p class="hint">Edit price in a row and click <strong>Save row</strong>, or use bulk above.</p>
+      <p class="hint">Use <strong>Search</strong> to filter. <strong>Save</strong> updates price and hide-price only. <strong>Edit</strong> opens the full form. <strong>Delete</strong> removes the product from the catalog (cannot undo).</p>
+      <label for="productSearch">Search by id or name</label>
+      <input type="search" id="productSearch" class="admin-search" placeholder="Type to filter…" autocomplete="off">
       <div class="table-wrap">
         <table class="admin-table">
           <thead>
@@ -91,14 +121,110 @@
               <th>Name</th>
               <th>Price</th>
               <th>Hide</th>
-              <th></th>
+              <th>Quick</th>
+              <th>Edit</th>
+              <th>Delete</th>
             </tr>
           </thead>
           <tbody id="productRows"></tbody>
         </table>
       </div>
     </div>
+
+    </div>
+
+    <div id="panelSite" class="admin-tab-panel" role="tabpanel" aria-labelledby="tabSite" hidden>
+      <div class="admin-card">
+        <h2>Home page: hero, text, About &amp; Contact</h2>
+        <p class="hint">This is stored as one file on the server. Open the section below only when you need to change slides, wording, or contact details.</p>
+        <details class="admin-details">
+          <summary>Advanced: edit site configuration as JSON</summary>
+          <p class="hint">Up to <strong>6</strong> slides; each slide needs an image path like <code>assets/slider/your-file.jpg</code>. Put new hero images in the <code>assets/slider</code> folder on the server (same way you deploy the site), then type that path here. Optional <code>pages.about</code> and <code>pages.contact</code> override About and Contact. Links must be relative (no <code>http://</code>).</p>
+          <label for="siteJson">Site data (JSON)</label>
+          <textarea id="siteJson" class="admin-json" spellcheck="false" rows="18"></textarea>
+          <div class="admin-row-btns">
+            <button type="button" class="btn secondary" id="siteReloadBtn">Reload from server</button>
+            <button type="button" class="btn primary" id="siteSaveBtn">Save site</button>
+          </div>
+          <p id="siteMsg" class="admin-msg" role="status"></p>
+        </details>
+      </div>
+
+      <div class="admin-card">
+        <h2>Valued clients (logos on the home page)</h2>
+        <p class="hint">One entry per company. <strong>Click a row</strong> to expand and edit; only one stays open at a time. <strong>Short id</strong> is a slug (lowercase, numbers, hyphens). Use <strong>Upload logo</strong> inside an open row to save into <code>assets/clients/</code>, or paste a path if the file is already there.</p>
+        <div id="clientsRows" class="admin-clients-rows"></div>
+        <p class="hint" id="clientsEmptyHint" hidden>No clients in the list yet. Click “Add client”.</p>
+        <button type="button" class="btn secondary" id="clientsAddBtn">Add client</button>
+        <div class="admin-row-btns" style="margin-top:0.75rem">
+          <button type="button" class="btn secondary" id="clientsReloadBtn">Reload from server</button>
+          <button type="button" class="btn primary" id="clientsSaveBtn">Save clients</button>
+        </div>
+        <p id="clientsMsg" class="admin-msg" role="status"></p>
+      </div>
+
+    </div>
+
   </section>
+
+  <div id="editProductModal" class="admin-modal" hidden>
+    <div class="admin-modal-backdrop" data-edit-modal-close></div>
+    <div class="admin-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="editProductTitle">
+      <div class="admin-modal-head">
+        <h2 id="editProductTitle">Edit product</h2>
+        <button type="button" class="admin-modal-x" data-edit-modal-close aria-label="Close">&times;</button>
+      </div>
+      <p class="hint">Id: <code id="editProductIdLabel"></code></p>
+      <input type="hidden" id="editProductId">
+      <label for="editName">Name *</label>
+      <input id="editName" maxlength="300" required>
+      <label for="editBrand">Brand</label>
+      <input id="editBrand" maxlength="120">
+      <div class="grid2">
+        <div>
+          <label for="editCategory">Main category *</label>
+          <select id="editCategory" required></select>
+        </div>
+        <div>
+          <label for="editMinOrder">Min order</label>
+          <input id="editMinOrder" maxlength="40">
+        </div>
+      </div>
+      <label for="editSubCategory">Sub category *</label>
+      <select id="editSubCategory" required></select>
+      <label for="editSpecKeys">Extra specs for quotes (optional)</label>
+      <input id="editSpecKeys" placeholder="capacity,length" autocomplete="off">
+      <p class="hint" style="margin:0.2rem 0 0">Put <strong>every</strong> spec name on one line, <strong>separated by commas</strong> (e.g. <code>capacity,length</code>). After a short pause, a <strong>unit + hint</strong> block appears below for each name. Add or remove names anytime; leave empty if the product does not need extra numbers on the quote form.</p>
+      <div id="editSpecFieldsContainer" class="admin-spec-fields"></div>
+      <div class="grid2">
+        <div>
+          <label for="editPrice">Price (INR)</label>
+          <input type="number" id="editPrice" min="0" step="1">
+        </div>
+        <div>
+          <label><input type="checkbox" id="editHidePrice"> Hide price</label>
+        </div>
+      </div>
+      <label for="editImage">Image path</label>
+      <input id="editImage" maxlength="200">
+      <div class="admin-upload-inline">
+        <label for="editImageFile">Upload → products</label>
+        <input type="file" id="editImageFile" accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml,.jpg,.jpeg,.png,.webp,.gif,.svg">
+        <button type="button" class="btn secondary" id="editImageUploadBtn">Upload &amp; set path</button>
+        <span id="editImageUploadMsg" class="admin-msg admin-msg--inline"></span>
+      </div>
+      <label for="editDesc">Description *</label>
+      <textarea id="editDesc" required rows="5" maxlength="8000"></textarea>
+      <p id="editProductMsg" class="admin-msg" role="alert"></p>
+      <div class="admin-modal-actions admin-modal-actions--split">
+        <button type="button" class="btn danger" id="editProductDeleteBtn">Delete product</button>
+        <div class="admin-modal-actions-right">
+          <button type="button" class="btn secondary" data-edit-modal-close>Cancel</button>
+          <button type="button" class="btn primary" id="editProductSaveBtn">Save product</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="admin.js"></script>
 </body>

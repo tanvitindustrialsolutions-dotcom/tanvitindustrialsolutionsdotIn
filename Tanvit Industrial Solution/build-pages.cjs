@@ -282,6 +282,7 @@ pages["index.html"] =
   footer +
   scripts +
   `<script src="js/home-slider.js"></script>
+<script src="js/site-loader.js"></script>
 </body></html>`;
 
 pages["about.html"] =
@@ -292,31 +293,31 @@ pages["about.html"] =
   header("about") +
   `<main>
   <div class="page-hero about-hero">
-    <h1>About Tanvit</h1>
-    <p class="lead">We are an industrial supply partner focused on consumables and machinery — helping you reduce downtime and keep standards high on the shop floor.</p>
+    <h1 id="aboutHeroTitle">About Tanvit</h1>
+    <p class="lead" id="aboutHeroLead">We are an industrial supply partner focused on consumables and machinery — helping you reduce downtime and keep standards high on the shop floor.</p>
   </div>
   <section class="section about-section">
     <div class="container">
       <div class="section-title about-section-title">
-        <h2>A dependable industrial supply partner</h2>
-        <p>We support manufacturers, contractors, and maintenance teams with reliable sourcing, clear product communication, and responsive service.</p>
+        <h2 id="aboutSectionTitle">A dependable industrial supply partner</h2>
+        <p id="aboutSectionSub">We support manufacturers, contractors, and maintenance teams with reliable sourcing, clear product communication, and responsive service.</p>
       </div>
-      <div class="about-grid">
-        <article class="about-card">
-          <h3>Who we are</h3>
-          <p><strong>Tanvit Industrial Solution</strong> serves manufacturers, fabricators, contractors, and maintenance teams that need dependable products without unnecessary complexity. Our name stands for a straightforward promise: quality-aligned sourcing, honest timelines, and responsive service.</p>
+      <div class="about-grid" id="aboutGrid">
+        <article class="about-card" id="aboutCard0">
+          <h3 id="aboutCard0Title">Who we are</h3>
+          <div class="about-card-body" id="aboutCard0Body"><p><strong>Tanvit Industrial Solution</strong> serves manufacturers, fabricators, contractors, and maintenance teams that need dependable products without unnecessary complexity. Our name stands for a straightforward promise: quality-aligned sourcing, honest timelines, and responsive service.</p></div>
         </article>
-        <article class="about-card">
-          <h3>What we supply</h3>
-          <p>Our portfolio spans <strong>industrial consumables</strong> — such as welding electrodes and wires, grinding and cutting discs, lubricants, hand tools, and maintenance consumables — and <strong>machinery &amp; equipment</strong> including pumps, compressors, and related equipment for production and site use.</p>
+        <article class="about-card" id="aboutCard1">
+          <h3 id="aboutCard1Title">What we supply</h3>
+          <div class="about-card-body" id="aboutCard1Body"><p>Our portfolio spans <strong>industrial consumables</strong> — such as welding electrodes and wires, grinding and cutting discs, lubricants, hand tools, and maintenance consumables — and <strong>machinery &amp; equipment</strong> including pumps, compressors, and related equipment for production and site use.</p></div>
         </article>
-        <article class="about-card">
-          <h3>How we work</h3>
-          <p>We combine a digital catalog with direct support. Browse and order online when you know exactly what you need; contact us when you want recommendations, bulk quotations, or delivery timelines that match your project.</p>
+        <article class="about-card" id="aboutCard2">
+          <h3 id="aboutCard2Title">How we work</h3>
+          <div class="about-card-body" id="aboutCard2Body"><p>We combine a digital catalog with direct support. Browse and order online when you know exactly what you need; contact us when you want recommendations, bulk quotations, or delivery timelines that match your project.</p></div>
         </article>
-        <article class="about-card">
-          <h3>Looking ahead</h3>
-          <p>We are expanding our range and strengthening logistics so Tanvit can grow with your organisation. Whether it is your first order or your hundredth, we aim to be <em>A Trusted partner for Industry</em>.</p>
+        <article class="about-card" id="aboutCard3">
+          <h3 id="aboutCard3Title">Looking ahead</h3>
+          <div class="about-card-body" id="aboutCard3Body"><p>We are expanding our range and strengthening logistics so Tanvit can grow with your organisation. Whether it is your first order or your hundredth, we aim to be <em>A Trusted partner for Industry</em>.</p></div>
         </article>
       </div>
     </div>
@@ -324,7 +325,8 @@ pages["about.html"] =
 </main>` +
   footer +
   scripts +
-  `</body></html>`;
+  `<script src="js/pages-loader.js"></script>
+</body></html>`;
 
 pages["contact.html"] =
   head(
@@ -334,8 +336,8 @@ pages["contact.html"] =
   header("contact") +
   `<main>
   <div class="page-hero">
-    <h1>Contact us</h1>
-    <p class="lead">We are glad to help with catalog questions, quotations, order status, and partnership enquiries. Reach out by phone or email — we typically respond within one business day.</p>
+    <h1 id="contactHeroTitle">Contact us</h1>
+    <p class="lead" id="contactHeroLead">We are glad to help with catalog questions, quotations, order status, and partnership enquiries. Reach out by phone or email — we typically respond within one business day.</p>
   </div>
   <div class="container section">
     <div class="contact-grid">
@@ -343,37 +345,38 @@ pages["contact.html"] =
         <h2>Get in touch</h2>
         <div class="contact-row">
           <strong>Phone</strong>
-          <a href="tel:+919414110440">+91-9414110440</a>
+          <a id="contactPhoneLink" href="tel:+919414110440">+91-9414110440</a>
         </div>
         <div class="contact-row">
           <strong>Email</strong>
-          <a href="mailto:tanvitindustrialsolutions@gmail.com">tanvitindustrialsolutions@gmail.com</a>
+          <a id="contactEmailLink" href="mailto:tanvitindustrialsolutions@gmail.com">tanvitindustrialsolutions@gmail.com</a>
         </div>
         <div class="contact-row">
           <strong>Registered address</strong>
-          <span>61-Pannadhai Colony, Chittorgarh, Rajasthan — 312001</span>
+          <span id="contactAddress">61-Pannadhai Colony, Chittorgarh, Rajasthan — 312001</span>
         </div>
         <div class="contact-row">
           <strong>Business hours</strong>
-          <span>Monday to Saturday, 10:00 – 18:00 IST (excluding public holidays)</span>
+          <span id="contactHours">Monday to Saturday, 10:00 – 18:00 IST (excluding public holidays)</span>
         </div>
       </div>
       <div class="contact-card">
-        <h2>What to include in your message</h2>
-        <p style="color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">For the fastest help, please share:</p>
-        <ul style="margin:0.75rem 0 0;padding-left:1.2rem;color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">
+        <h2 id="contactMessageTitle">What to include in your message</h2>
+        <p id="contactMessageIntro" style="color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">For the fastest help, please share:</p>
+        <ul id="contactMessageList" style="margin:0.75rem 0 0;padding-left:1.2rem;color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">
           <li>Company name and contact person</li>
           <li>Product name or category, quantity, and delivery location</li>
           <li>Whether you need a formal quotation or GST invoice details</li>
         </ul>
-        <p style="margin-top:1.25rem;font-size:0.9375rem"><a class="btn btn-primary" href="mailto:tanvitindustrialsolutions@gmail.com?subject=Enquiry%20from%20website">Send an email</a></p>
+        <p style="margin-top:1.25rem;font-size:0.9375rem"><a class="btn btn-primary" id="contactEmailBtn" href="mailto:tanvitindustrialsolutions@gmail.com?subject=Enquiry%20from%20website">Send an email</a></p>
       </div>
     </div>
   </div>
 </main>` +
   footer +
   scripts +
-  `</body></html>`;
+  `<script src="js/pages-loader.js"></script>
+</body></html>`;
 
 pages["quotation.html"] =
   head(

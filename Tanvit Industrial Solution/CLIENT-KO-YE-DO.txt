@@ -1,0 +1,36 @@
+================================================================================
+CLIENT KO SITE EDIT (ADMIN) KE LIYE KYA DENA HAI
+================================================================================
+
+PUBLIC SITE (jo log dekhte hain)
+---------------------------------
+Alag se koi "site file" dene ki zaroorat NAHI — jo domain pe site chal rahi hai wahi hai.
+
+
+ADMIN — "kahin se bhi" browser se edit
+---------------------------------------
+Client ko sirf YE DO cheezein do (password alag safe tarike se):
+
+  1) LINK (bookmark karein):
+     https://<UNKA-DOMAIN>/admin/
+     (domain ke saath https; path hamesha /admin/ )
+
+  2) PASSWORD:
+     Jo tumne server / Render par ADMIN_PASSWORD set kiya hai — wahi.
+     (GitHub ya email mein password mat likho; WhatsApp / phone / password manager better.)
+
+
+Koi single "edit file" Internet par kaam NAHI karegi bina server ke. Admin page
+server se baat karke data/ folder mein save karti hai — isliye domain wala
+host pe Node app (npm start) chalna zaroori hai.
+
+
+OPTIONAL — agar client kabhi LOCAL computer se edit kare (office PC)
+-----------------------------------------------------------------------
+Poora project folder + Node.js + start-admin-local.bat
+(ye sirf offline / local ke liye; "kahin se bhi" ke liye upar wala LINK hi kaafi hai.)
+
+
+================================================================================
+Tum (agency) apna part: domain Render/host par is repo deploy + env vars set.
+================================================================================

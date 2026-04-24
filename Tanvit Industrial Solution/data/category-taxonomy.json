@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "mainCategories": [
+    { "value": "consumables", "label": "Consumables" },
+    { "value": "machinery", "label": "Machinery" }
+  ],
+  "subcategoriesByMain": {
+    "consumables": [
+      { "composite": "w:electrodes", "label": "Welding · Electrodes and wire" },
+      { "composite": "w:machine", "label": "Welding · Machine" },
+      { "composite": "w:accessories", "label": "Welding · Accessories" },
+      { "composite": "w:cable", "label": "Welding · Cable" },
+      { "composite": "c:respiratory", "label": "PPE · Respiratory" }
+    ],
+    "machinery": [
+      { "composite": "m:lifting", "label": "Material handling · Lifting tools" }
+    ]
+  }
+}

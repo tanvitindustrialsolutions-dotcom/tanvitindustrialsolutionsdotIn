@@ -35,8 +35,8 @@
   </div>
 </header><main>
   <div class="page-hero">
-    <h1>Contact us</h1>
-    <p class="lead">We are glad to help with catalog questions, quotations, order status, and partnership enquiries. Reach out by phone or email — we typically respond within one business day.</p>
+    <h1 id="contactHeroTitle">Contact us</h1>
+    <p class="lead" id="contactHeroLead">We are glad to help with catalog questions, quotations, order status, and partnership enquiries. Reach out by phone or email — we typically respond within one business day.</p>
   </div>
   <div class="container section">
     <div class="contact-grid">
@@ -44,30 +44,30 @@
         <h2>Get in touch</h2>
         <div class="contact-row">
           <strong>Phone</strong>
-          <a href="tel:+919414110440">+91-9414110440</a>
+          <a id="contactPhoneLink" href="tel:+919414110440">+91-9414110440</a>
         </div>
         <div class="contact-row">
           <strong>Email</strong>
-          <a href="mailto:tanvitindustrialsolutions@gmail.com">tanvitindustrialsolutions@gmail.com</a>
+          <a id="contactEmailLink" href="mailto:tanvitindustrialsolutions@gmail.com">tanvitindustrialsolutions@gmail.com</a>
         </div>
         <div class="contact-row">
           <strong>Registered address</strong>
-          <span>61-Pannadhai Colony, Chittorgarh, Rajasthan — 312001</span>
+          <span id="contactAddress">61-Pannadhai Colony, Chittorgarh, Rajasthan — 312001</span>
         </div>
         <div class="contact-row">
           <strong>Business hours</strong>
-          <span>Monday to Saturday, 10:00 – 18:00 IST (excluding public holidays)</span>
+          <span id="contactHours">Monday to Saturday, 10:00 – 18:00 IST (excluding public holidays)</span>
         </div>
       </div>
       <div class="contact-card">
-        <h2>What to include in your message</h2>
-        <p style="color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">For the fastest help, please share:</p>
-        <ul style="margin:0.75rem 0 0;padding-left:1.2rem;color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">
+        <h2 id="contactMessageTitle">What to include in your message</h2>
+        <p id="contactMessageIntro" style="color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">For the fastest help, please share:</p>
+        <ul id="contactMessageList" style="margin:0.75rem 0 0;padding-left:1.2rem;color:var(--color-text-muted);font-size:0.9375rem;line-height:1.65">
           <li>Company name and contact person</li>
           <li>Product name or category, quantity, and delivery location</li>
           <li>Whether you need a formal quotation or GST invoice details</li>
         </ul>
-        <p style="margin-top:1.25rem;font-size:0.9375rem"><a class="btn btn-primary" href="mailto:tanvitindustrialsolutions@gmail.com?subject=Enquiry%20from%20website">Send an email</a></p>
+        <p style="margin-top:1.25rem;font-size:0.9375rem"><a class="btn btn-primary" id="contactEmailBtn" href="mailto:tanvitindustrialsolutions@gmail.com?subject=Enquiry%20from%20website">Send an email</a></p>
       </div>
     </div>
   </div>
@@ -96,4 +96,6 @@
   </div>
   <div class="footer-bottom">© Tanvit Industrial Solutions. All rights reserved.</div>
 </footer><script src="js/store.js"></script>
-<script src="js/catalog-loader.js"></script></body></html>
+<script src="js/catalog-loader.js"></script>
+<script src="js/pages-loader.js"></script>
+</body></html>

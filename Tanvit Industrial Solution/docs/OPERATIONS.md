@@ -23,7 +23,7 @@ If the key is missing, the forms show an error; phone on the contact page still 
 - **Editing products / prices:**
   1. Install deps: `npm install`
   2. Set **`ADMIN_PASSWORD`** and **`SESSION_SECRET`** (see [`.env.example`](../.env.example)).
-  3. Run **`npm run server`** and open **`http://localhost:8787/admin/`** (port from `PORT` if set).
+  3. Run **`npm start`** or **`npm run server`** and open **`http://localhost:8787/admin/`** (same origin as the site; port from `PORT` if set).
   4. Log in, use the table (**Save row**), **bulk price** on selected rows, or **Add product** for a minimal new line. Advanced fields (e.g. `weldingCategory`, `requiresClientSpecs`) can be added by editing `data/catalog.json` on disk or extending the admin UI later.
 - **Static-only hosting:** deploy `data/catalog.json` with the site; `GET /api/catalog` will 404 and the loader falls back to `/data/catalog.json`. You can edit the JSON offline and re-upload.
 
@@ -48,7 +48,7 @@ node build-pages.cjs
 
 ## Deploying
 
-- **With admin API:** run **`npm run server`** behind a process manager (or your host’s Node runner), set env vars, put **HTTPS** in front (reverse proxy).
-- **Static only:** build/serve the folder; ensure **`data/catalog.json`** is included and reachable at `/data/catalog.json`.
+- **With admin API (recommended when the client edits live):** run **`npm start`** (or `npm run server`) behind a process manager (or your host’s Node runner), set env vars from [`.env.example`](../.env.example), put **HTTPS** in front (reverse proxy). See **[Client deploy + GitHub](CLIENT-DEPLOY-GITHUB.md)** and **[Deploy on Render](ONLINE_ADMIN_DEPLOY.md)** (includes `render.yaml` + optional GitHub deploy hook).
+- **Static only:** build/serve the folder; ensure **`data/catalog.json`** (and other `data/*.json` you use) plus **`assets/`** are included. Admin **saving** from the browser will not work unless you add another backend; you would edit files offline and redeploy.
 
 Keep this doc updated when your operational process changes.

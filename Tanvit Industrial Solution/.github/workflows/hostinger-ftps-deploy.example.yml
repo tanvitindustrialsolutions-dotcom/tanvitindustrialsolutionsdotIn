@@ -1,0 +1,33 @@
+# OPTIONAL: copy to hostinger-ftps-deploy.yml and add GitHub Secrets.
+# Hostinger hPanel → FTP Accounts → create / note hostname, username, password.
+# Repo root = monorepo with "Tanvit Industrial Solution/" folder → adjust local-dir if yours differs.
+
+name: Deploy Tanvit folder to Hostinger (FTP)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ftp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: FTP deploy (Tanvit → public_html)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Folder inside repo that is the website root (no trailing slash issues — see action docs)
+          local-dir: ./Tanvit Industrial Solution/
+          server-dir: ./public_html/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env
+            **/.cursor/**

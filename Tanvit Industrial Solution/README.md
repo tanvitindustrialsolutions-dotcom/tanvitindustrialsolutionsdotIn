@@ -14,6 +14,8 @@ Deploy by running **`npm start`** (same as `node server/index.js`) on the server
 Full GitHub + handover: **[docs/CLIENT-DEPLOY-GITHUB.md](docs/CLIENT-DEPLOY-GITHUB.md)**.  
 Render (blueprint + domain + hook): **[docs/ONLINE_ADMIN_DEPLOY.md](docs/ONLINE_ADMIN_DEPLOY.md)** · root [`render.yaml`](render.yaml).
 
+**Hostinger Single + bina live Node:** local admin → push → FTP deploy — **[docs/WORKFLOW-LOCAL-ADMIN-FIR-PUSH.md](docs/WORKFLOW-LOCAL-ADMIN-FIR-PUSH.md)** · example [`.github/workflows/hostinger-ftps-deploy.example.yml`](.github/workflows/hostinger-ftps-deploy.example.yml).
+
 ## Run locally
 
 **Catalog + admin** (recommended — shop, API, and `/admin/` work together):

@@ -13,7 +13,7 @@
  * - price         number, INR (no commas), inclusive of taxes as shown in the shop
  * - hidePrice     optional boolean — if true, price is not shown (quote on request)
  * - minOrder      display string, e.g. "1 NOS" or "10 BOX" (welding rods)
- * - requiresClientSpecs (optional) string[] — e.g. ["capacity","length"]; collected on product page for quotation emails
+ * - requiresClientSpecs (optional) string[] — e.g. ["capacity"] or ["capacity","length"]; collected on product page for quotation emails
  * - specHints     (optional) Record<string,string> — short hints per spec key (units fixed via specUnits)
  * - specUnits     (optional) Record<string,string> — fixed unit suffix per key, e.g. { capacity: "TON", length: "MTR" }
  * - description   plain text for shop + product page
@@ -193,6 +193,15 @@ function productSpecsRequired(p) {
 
 function productSpecFieldLabel(key) {
   return SPEC_FIELD_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1));
+}
+
+/** Lowercase phrase for UI, e.g. "capacity and length" or "capacity" — from `requiresClientSpecs` keys */
+function productSpecsDependPhrase(keys) {
+  if (!Array.isArray(keys) || !keys.length) return "";
+  const parts = keys.map((k) => productSpecFieldLabel(k).toLowerCase());
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts[0] + " and " + parts[1];
+  return parts.slice(0, -1).join(", ") + ", and " + parts[parts.length - 1];
 }
 
 function productSpecHint(p, key) {
@@ -385,6 +394,7 @@ window.TanvitStore = {
   productImageUrl,
   productSpecsRequired,
   productSpecFieldLabel,
+  productSpecsDependPhrase,
   productSpecHint,
   productSpecUnit,
   normalizeSpecIntValue,

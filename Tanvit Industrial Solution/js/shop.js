@@ -52,9 +52,13 @@
           <p class="excerpt">${escapeHtml(excerpt(p.description, 95))}</p>
           <p class="product-min-order">Min. order qty: ${escapeHtml(TanvitStore.productMinOrder(p))}</p>
           ${
-            TanvitStore.productSpecsRequired(p)
-              ? `<p class="product-card-spec-hint">Enter capacity &amp; length in the quotation form on the product page.</p>`
-              : ""
+            (() => {
+              const sk = TanvitStore.productSpecsRequired(p);
+              const phrase = sk && TanvitStore.productSpecsDependPhrase(sk);
+              return phrase
+                ? `<p class="product-card-spec-hint">Enter ${escapeHtml(phrase)} in the quotation form on the product page.</p>`
+                : "";
+            })()
           }
           <div class="price">${
             TanvitStore.productHidePrice(p)

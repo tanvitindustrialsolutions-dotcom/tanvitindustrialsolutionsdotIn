@@ -244,18 +244,15 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MTR"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Rated line pull / capacity (tonnes) for your application",
-      "length": "Cable / stroke length or run (m) — describe use case in enquiry if needed"
+      "capacity": "Rated line pull / capacity (tonnes); add stroke, cable length, or duty in your enquiry if relevant"
     },
-    "description": "Kepro Technologies Pvt. Ltd. — pulling and lifting machine for heavy-duty pulling, tensioning, and lifting tasks in line with Kepro’s lifting equipment range. Specify capacity and stroke or cable length for quotation; confirm duty, hooks, and site power (if motorised) with Kepro. Indicative list price. Category page: https://kepro.in/pull-lifting-machine.php"
+    "description": "Kepro Technologies Pvt. Ltd. — pulling and lifting machine for heavy-duty pulling, tensioning, and lifting tasks in line with Kepro’s lifting equipment range. Specify capacity for quotation; add stroke or cable length, duty, hooks, and site power (if motorised) in your enquiry with Kepro. Indicative list price. Category page: https://kepro.in/pull-lifting-machine.php"
   },
   {
     "id": "kepro-chain-sling",
@@ -316,16 +313,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Per-clamp WLL (tonnes); up to 8 t per Kepro — typically used in pairs",
-      "length": "Plate thickness / jaw gap (mm); up to 100 mm per Kepro"
+      "capacity": "Per-clamp WLL (tonnes); up to 8 t per Kepro — typically used in pairs; note plate thickness (mm) in your enquiry if known"
     },
     "description": "Kepro Technologies Pvt. Ltd. — horizontal lifting clamp: lifts plate horizontally; always used in pairs per Kepro. Low-carbon, heavy-duty welded alloy steel body; tough steel jaws for secure grip. Capacity up to 8 tonnes; jaw/plate thickness up to 100 mm. Indicative list price — confirm plate grade and pairing with Kepro. Product page: https://kepro.in/horizontal-clamp.php"
   },
@@ -340,16 +334,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Rated capacity (tonnes); up to 8 t per Kepro",
-      "length": "Plate thickness / jaw range (mm); up to 60 mm per Kepro"
+      "capacity": "Rated capacity (tonnes); up to 8 t per Kepro — note plate thickness (mm) in your enquiry if known"
     },
     "description": "Kepro Technologies Pvt. Ltd. — vertical lifting clamp: lifts plate vertically; tough steel jaws and spring locks for easy attachment per Kepro. Capacity up to 8 tonnes; plate thickness up to 60 mm. Indicative list price — confirm material and thickness with Kepro. Product page: https://kepro.in/vertical-clamp.php"
   },
@@ -364,16 +355,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Rated capacity (tonnes); up to 8 t per Kepro",
-      "length": "Plate thickness / jaw range (mm); up to 80 mm per Kepro"
+      "capacity": "Rated capacity (tonnes); up to 8 t per Kepro — note plate thickness (mm) in your enquiry if known"
     },
     "description": "Kepro Technologies Pvt. Ltd. — universal lifting clamp: versatile, safe design for varied lifting applications; combines safety and ease of use per Kepro. Capacity up to 8 tonnes; plate thickness up to 80 mm. Indicative list price — confirm orientation and plate spec with Kepro. Product page: https://kepro.in/universal-clamp.php"
   },
@@ -388,16 +376,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Working load limit (tonnes); up to 150 t range per Kepro catalogue",
-      "length": "Body / pin size reference (mm), or enter 1 if sizing by enquiry only"
+      "capacity": "Working load limit (tonnes); up to 150 t range per Kepro — note pin / body size in your enquiry"
     },
     "description": "Kepro Technologies Pvt. Ltd. — D shackle with screw pin: forged, quenched, and tempered alloy steel pin; locking system to reduce unintentional release per Kepro. For connecting slings, chains, and loads. Capacity up to 150 tonnes in range — quote with pin size, proof load, and batch traceability needs. Indicative list price. Product page: https://kepro.in/d-shackle-screw.php"
   },
@@ -412,16 +397,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Working load limit (tonnes); up to 150 t range per Kepro catalogue",
-      "length": "Body / pin size reference (mm), or enter 1 if sizing by enquiry only"
+      "capacity": "Working load limit (tonnes); up to 150 t range per Kepro — note pin / body size in your enquiry"
     },
     "description": "Kepro Technologies Pvt. Ltd. — bow shackle with screw pin: forged, quenched, and tempered alloy steel pin; secure locking per Kepro. For connecting slings, chains, and loads where bow geometry helps alignment. Capacity up to 150 tonnes in range. Indicative list price — confirm WLL and pin diameter with Kepro. Product page: https://kepro.in/bow-shackle-screw.php"
   },
@@ -436,16 +418,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Rated capacity (tonnes); up to 3 t per Kepro",
-      "length": "Lift height or mast lift (mm) — confirm fork length separately on enquiry"
+      "capacity": "Rated capacity (tonnes); up to 3 t per Kepro — add lift height, fork size, and wheel type in your enquiry"
     },
     "description": "Kepro Technologies Pvt. Ltd. — hydraulic stacker: drop-forged fork with fine finish; quality hydraulic pump and cylinder for smooth, low-maintenance operation per Kepro. Capacity up to 3 tonnes. Indicative list price — confirm lift height, fork dimensions, and wheel type with Kepro. Product page: https://kepro.in/hydraulic-pallet-truck.php"
   },
@@ -460,16 +439,13 @@
     "hidePrice": false,
     "minOrder": "1 NOS",
     "requiresClientSpecs": [
-      "capacity",
-      "length"
+      "capacity"
     ],
     "specUnits": {
-      "capacity": "TON",
-      "length": "MM"
+      "capacity": "TON"
     },
     "specHints": {
-      "capacity": "Rated capacity (tonnes); up to 3 t per Kepro",
-      "length": "Fork length (mm); use overall width or lift if standard fork — note in enquiry"
+      "capacity": "Rated capacity (tonnes); up to 3 t per Kepro — add fork length, width, and wheel type in your enquiry"
     },
     "description": "Kepro Technologies Pvt. Ltd. — manual pallet truck: heavy-duty frame, effortless pump unit with zinc-plated piston; four-point ground contact for uneven floors; suited to logistics, warehouse, and cargo handling per Kepro. Capacity up to 3 tonnes. Indicative list price — confirm fork length, width, and wheel material with Kepro. Product page: https://kepro.in/mpallet-truck.php"
   },

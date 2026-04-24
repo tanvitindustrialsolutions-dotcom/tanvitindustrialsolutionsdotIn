@@ -33,8 +33,11 @@
 
   function buildModalSpecSection(p, specKeys) {
     if (!specKeys || !specKeys.length) return "";
+    const phrase = TanvitStore.productSpecsDependPhrase(specKeys);
     const lead =
-      "<p class=\"product-spec-lead quote-modal__spec-lead\">Final price depends on the <strong>capacity</strong> and <strong>length</strong> you need. Use <strong>whole numbers only</strong> (no decimals). Units are fixed as shown.</p>";
+      "<p class=\"product-spec-lead quote-modal__spec-lead\">Final price depends on <strong>" +
+      esc(phrase) +
+      "</strong> you need. Use <strong>whole numbers only</strong> (no decimals). Units are fixed as shown.</p>";
     const fields = specKeys
       .map((key) => {
         const label = TanvitStore.productSpecFieldLabel(key);
@@ -144,7 +147,9 @@
         <h1 style="margin-top:0;font-size:clamp(1.5rem,3vw,1.85rem)">${esc(p.name)}</h1>
         ${
           TanvitStore.productHidePrice(p)
-            ? `<p class="price" style="font-size:1.25rem;margin:0.5rem 0 1rem;color:var(--color-text-muted)">Price on quotation${specKeys ? " — based on your capacity &amp; length" : ""}</p>`
+            ? `<p class="price" style="font-size:1.25rem;margin:0.5rem 0 1rem;color:var(--color-text-muted)">Price on quotation${
+                specKeys ? " — based on your " + esc(TanvitStore.productSpecsDependPhrase(specKeys)) : ""
+              }</p>`
             : `<p class="price" style="font-size:1.5rem;margin:0.5rem 0 1rem">${TanvitStore.money(p.price)} <span style="font-size:0.85rem;font-weight:500;color:var(--color-text-muted)">indicative, incl. taxes${specKeys ? " — quotation based on your specs" : ""}; freight if applicable</span></p>`
         }
         <p class="product-min-order">Min. order qty: ${esc(TanvitStore.productMinOrder(p))}</p>

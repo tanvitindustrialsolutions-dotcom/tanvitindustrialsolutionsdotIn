@@ -114,7 +114,7 @@ function ingestCategoryTaxonomy(doc) {
 const DAILY_HIGHLIGHT = {
   title: "Today's highlight",
   subtitle: "Featured for your plant — wholesale pricing on enquiry.",
-  footnote: "Prices incl. taxes; final quotation on request where applicable.",
+  footnote: "Specifications and availability confirmed on enquiry.",
   /** Optional legacy field — not shown on flyers. */
   shareUrl: "",
   /** "fixed" = use productIds only. "daily" = rotate by calendar day (+ “New picks” nudge). */
@@ -139,7 +139,7 @@ const DAILY_HIGHLIGHT = {
   /** Optional 3 short trust bullets for the flyer CTA column; defaults used if empty */
   flyerBullets: [
     "Genuine brands & traceable specifications",
-    "Prices incl. taxes where shown on the sheet",
+    "Technical details & MOQ on enquiry",
     "Wholesale quotes & delivery on enquiry"
   ],
   /**
@@ -422,7 +422,6 @@ function getHighlightProductIds() {
   }
   const rawCount = parseInt(String(cfg.spotlightCount ?? 2), 10);
   const want = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 2;
-  const count = Math.min(Math.max(1, want), PRODUCTS.length);
   let pool =
     Array.isArray(cfg.rotationPoolIds) && cfg.rotationPoolIds.length
       ? cfg.rotationPoolIds.filter((id) => findProduct(id))
@@ -431,6 +430,7 @@ function getHighlightProductIds() {
   if (!pool.length) {
     return (cfg.productIds || []).slice();
   }
+  const count = Math.min(Math.max(1, want), pool.length);
   const seed = `${localDateKey()}:${getHighlightRotationNudge()}`;
   const start = highlightSeedHash(seed) % pool.length;
   const out = [];

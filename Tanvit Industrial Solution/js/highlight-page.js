@@ -178,6 +178,18 @@
     }
   }
 
+  /** Same catalog id can appear more than once in data; flyer must show each product at most once. */
+  function dedupeProductsById(list) {
+    const seen = new Set();
+    const out = [];
+    for (const p of list) {
+      if (!p || seen.has(p.id)) continue;
+      seen.add(p.id);
+      out.push(p);
+    }
+    return out;
+  }
+
   function rotatePick(list, count) {
     if (!list.length) return [];
     const d = new Date();
@@ -199,13 +211,12 @@
   }
 
   function getSelectedHighlightProducts() {
-    const count = Math.min(Math.max(1, selectionState.count), 24);
-    const all = TanvitStore.PRODUCTS.slice();
-    let pool = all;
+    const want = Math.min(Math.max(1, selectionState.count), 24);
+    let pool = dedupeProductsById(TanvitStore.PRODUCTS.slice());
     if (selectionState.category) {
       pool = pool.filter((p) => categoryKeyFromProduct(p) === selectionState.category);
-      return pickFromPool(pool, count, selectionState.refreshNonce);
     }
+    const count = Math.min(want, pool.length);
     return pickFromPool(pool, count, selectionState.refreshNonce);
   }
 
@@ -325,7 +336,7 @@
     if (!lines.length) {
       return [
         "Genuine brands & traceable specifications",
-        "Prices incl. taxes where shown on the sheet",
+        "Technical details & MOQ on enquiry",
         "Wholesale quotes & delivery on enquiry"
       ]
         .map((b) => `<li>${esc(b)}</li>`)
@@ -372,9 +383,6 @@
         const img = TanvitStore.productImageUrl(p);
         const mo = TanvitStore.productMinOrder(p);
         const n = i + 1;
-        const priceBlock = TanvitStore.productHidePrice(p)
-          ? `<div class="highlight-flyer__price-row"><span class="highlight-flyer__price-label">Price</span><p class="highlight-flyer__price highlight-flyer__price--quote"><span class="highlight-flyer__price-note">On quotation</span></p></div>`
-          : `<div class="highlight-flyer__price-row"><span class="highlight-flyer__price-label">List</span><p class="highlight-flyer__price">${esc(TanvitStore.money(p.price))}<span class="highlight-flyer__price-note">incl. taxes</span></p></div>`;
         return `<article class="highlight-flyer__card">
         <span class="highlight-flyer__card-badge" aria-hidden="true">${n}</span>
         <div class="highlight-flyer__card-ribbon" aria-hidden="true"></div>
@@ -385,7 +393,6 @@
           ${brand ? `<p class="highlight-flyer__brand">${esc(brand)}</p>` : ""}
           <h2 class="highlight-flyer__name">${esc(p.name)}</h2>
           <p class="highlight-flyer__cat">${esc(cat)}</p>
-          ${priceBlock}
           <div class="highlight-flyer__card-footer">
             <p class="highlight-flyer__mo">Min. order <strong>${esc(mo)}</strong></p>
             <p class="highlight-flyer__sku"><span class="highlight-flyer__sku-label">Ref</span><span class="highlight-flyer__sku-pill">${esc(p.id)}</span></p>
@@ -430,7 +437,7 @@
     </section>
     ${contactSection}
     <div class="highlight-flyer__bottom">
-      <footer class="highlight-flyer__foot">${footnote ? esc(footnote) : "Prices & availability subject to confirmation on enquiry."}</footer>
+      <footer class="highlight-flyer__foot">${footnote ? esc(footnote) : "Availability and specifications confirmed on enquiry."}</footer>
     </div>
     </div>`;
     const exportEl = document.getElementById("highlightExport");

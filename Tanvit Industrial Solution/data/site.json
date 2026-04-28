@@ -18,12 +18,12 @@
       "secondaryHref": "contact.html"
     },
     {
-      "image": "assets/slider/slide-2.jpg",
-      "alt": "",
-      "photoCenter": false,
-      "eyebrow": "Consumables",
+      "image": "assets/slider/slide-2.png",
+      "alt": "Metalworker with blue safety gloves using an oxy-fuel cutting torch on a thick metal plate, bright flame",
+      "photoCenter": true,
+      "eyebrow": "Cutting & heating",
       "title": "Everything your shop reorders, week after week",
-      "tagline": "Welding consumables, tools, and industrial supplies — specified clearly so you can request a quote with confidence.",
+      "tagline": "Gas cutting, welding consumables, and industrial tools — specified clearly so you can request a quote with confidence.",
       "primaryLabel": "Shop consumables",
       "primaryHref": "shop.html",
       "secondaryLabel": "Request a quote",

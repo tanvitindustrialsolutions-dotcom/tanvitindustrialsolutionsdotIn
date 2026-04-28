@@ -103,7 +103,7 @@ pages["index.html"] =
         </article>
         <article class="hero-slide hero-slide--media hero-slide--photo-center" aria-label="Slide 2 of 3" aria-hidden="true">
           <div class="hero-slide-media">
-            <img src="assets/slider/slide-2.png" alt="Metalworker with blue safety gloves using an oxy-fuel cutting torch on a thick metal plate, bright flame" width="1920" height="1080" decoding="async" loading="lazy">
+            <img src="assets/slider/slide-2-20260428.png" alt="Metalworker with blue safety gloves using an oxy-fuel cutting torch on a thick metal plate, bright flame" width="1920" height="1080" decoding="async" loading="lazy">
           </div>
           <div class="hero-slide-scrim" aria-hidden="true"></div>
           <div class="hero-slide-inner">
@@ -118,7 +118,7 @@ pages["index.html"] =
         </article>
         <article class="hero-slide hero-slide--media hero-slide--photo-center" aria-label="Slide 3 of 3" aria-hidden="true">
           <div class="hero-slide-media">
-            <img src="assets/slider/slide-3.png" alt="Welder using arc welding equipment at a metal workbench, with sparks and welding machine" width="1920" height="1080" decoding="async" loading="lazy">
+            <img src="assets/slider/slide-3-20260428.png" alt="Welder using arc welding equipment at a metal workbench, with sparks and welding machine" width="1920" height="1080" decoding="async" loading="lazy">
           </div>
           <div class="hero-slide-scrim" aria-hidden="true"></div>
           <div class="hero-slide-inner">

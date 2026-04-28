@@ -496,17 +496,5 @@
     "hidePrice": false,
     "minOrder": "20 NOS",
     "description": "Venus filtering facepiece respirator V-44+ — fold-flat “V” style for compact storage when not in use; class FFP1 S for solid dust and mist; manufacturer states M.U.L. up to 4× OEL. Catalogue item numbers (per Venus): 110498001 yellow stapled — bag of 50; 140490201 yellow stapled — blister pack of 3. Features highlighted on the range include lightweight construction; embedded nose clip inside the media (no metal exposure or loose parts, leak-proof fit); elastic welded/stapled outside the filter area; knitted elastic for comfort; multi-layer micro-fine filter media (pre-filter, fine filter, comfort layer); unique fit adjusters on the head band; compatibility with other PPE (eye, hearing, head). Example applications cited include grain duct and pollen dust, spinning and weaving, food processing, medical staff and patients, housekeeping, and road pollution. Confirm class, packing, and colour on enquiry. Official product page: https://venusohs.com/product/venus-v-44/"
-  },
-  {
-    "id": "test",
-    "name": "TEST",
-    "brand": "ADOR",
-    "category": "consumables",
-    "price": 2500,
-    "minOrder": "1 NOS",
-    "image": "assets/products/test.jpg",
-    "description": "test description",
-    "hidePrice": false,
-    "weldingCategory": "electrodes"
   }
 ]

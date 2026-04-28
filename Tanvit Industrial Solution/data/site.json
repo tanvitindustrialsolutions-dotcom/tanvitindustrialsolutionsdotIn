@@ -30,15 +30,15 @@
       "secondaryHref": "contact.html"
     },
     {
-      "image": "assets/slider/slide-3.jpg",
-      "alt": "",
-      "photoCenter": false,
-      "eyebrow": "Machinery",
-      "title": "Equipment that fits your process & budget",
-      "tagline": "Machinery and lifting tools for fabrication and plant — we help you compare options and plan for maintenance.",
-      "primaryLabel": "View machinery",
+      "image": "assets/slider/slide-3.png",
+      "alt": "Welder using arc welding equipment at a metal workbench, with sparks and welding machine",
+      "photoCenter": true,
+      "eyebrow": "Welding & fabrication",
+      "title": "Welding that keeps production moving",
+      "tagline": "From electrodes to machines — we supply fabrication teams with genuine brands, clear specifications, and responsive support.",
+      "primaryLabel": "Browse the catalog",
       "primaryHref": "shop.html",
-      "secondaryLabel": "Speak to sales",
+      "secondaryLabel": "Request a quote",
       "secondaryHref": "contact.html"
     }
   ],

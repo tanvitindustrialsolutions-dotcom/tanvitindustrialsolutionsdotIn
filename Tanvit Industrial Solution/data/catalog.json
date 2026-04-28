@@ -1,7 +1,7 @@
 [
   {
     "id": "ador-kingbond-e6013",
-    "image": "assets/products/ador-kingbond-e6013.jpg",
+    "image": "assets/products/ador-kingbond-e6013.png",
     "category": "consumables",
     "weldingCategory": "electrodes",
     "brand": "Ador Welding",
@@ -79,7 +79,7 @@
   },
   {
     "id": "w-champ-t400",
-    "image": "assets/products/w-champ-t400.jpg",
+    "image": "assets/products/w-champ-t400.png",
     "category": "machinery",
     "weldingCategory": "machine",
     "brand": "Ador Welding",

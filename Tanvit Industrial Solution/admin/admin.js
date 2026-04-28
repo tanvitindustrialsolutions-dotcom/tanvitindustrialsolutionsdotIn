@@ -31,6 +31,11 @@
   const categoryTaxonomyReloadBtn = document.getElementById("categoryTaxonomyReloadBtn");
   const categoryTaxonomySaveBtn = document.getElementById("categoryTaxonomySaveBtn");
   const categoryTaxonomyMsg = document.getElementById("categoryTaxonomyMsg");
+  const gitPublishHint = document.getElementById("gitPublishHint");
+  const gitPublishControls = document.getElementById("gitPublishControls");
+  const gitPublishMessage = document.getElementById("gitPublishMessage");
+  const gitPublishBtn = document.getElementById("gitPublishBtn");
+  const gitPublishMsg = document.getElementById("gitPublishMsg");
 
   let catalog = [];
 
@@ -508,6 +513,71 @@
     }
   }
 
+  function explainGitApiUnavailable(err) {
+    const m = err && err.message ? String(err.message) : String(err || "");
+    if (m === "Not Found" || /\b404\b/i.test(m)) {
+      return (
+        "Git push from admin only works when this page is served by Node on your PC (npm run server → http://localhost:8787/admin/). " +
+        "On the live website (static hosting) there is no /api route, so you see Not Found. Pull the latest code, restart the server, and use localhost."
+      );
+    }
+    return m;
+  }
+
+  function setGitPushFormEnabled(enabled, titleWhenDisabled) {
+    if (gitPublishBtn) {
+      gitPublishBtn.disabled = !enabled;
+      gitPublishBtn.title = enabled ? "" : titleWhenDisabled || "Fix setup (see hint above), then refresh.";
+    }
+    /* Commit message stays editable so you can type before push is available; only the button is gated. */
+  }
+
+  async function loadGitPublishPanel() {
+    if (!gitPublishHint) return;
+    if (gitPublishMsg) gitPublishMsg.textContent = "";
+    if (gitPublishControls) gitPublishControls.hidden = false;
+
+    let hintText = "";
+    let canPush = false;
+    let disabledTitle = "";
+
+    try {
+      const r = await fetch("/api/admin/git-publish-info", {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      });
+      const text = await r.text();
+      let info = {};
+      try {
+        info = text ? JSON.parse(text) : {};
+      } catch {
+        info = {};
+      }
+      if (r.status === 404) {
+        hintText = explainGitApiUnavailable(new Error("Not Found"));
+        disabledTitle = "No API on static hosting — open admin via npm run server on localhost.";
+      } else if (!r.ok) {
+        hintText = explainGitApiUnavailable(new Error(info.error || info.message || r.statusText || "Request failed"));
+        disabledTitle = "Server returned an error — check npm run server in the project terminal.";
+      } else if (!info.allowed) {
+        hintText = info.hint || "Git push from admin is disabled.";
+        disabledTitle = "Add ALLOW_ADMIN_GIT_PUSH=1 to .env and restart the server.";
+      } else if (!info.hasGit) {
+        hintText = info.hint || "No git repository detected.";
+        disabledTitle = "Set GIT_REPO_ROOT to the folder that contains .git (e.g. C:\\BHANU).";
+      } else {
+        hintText = info.hint || "";
+        canPush = true;
+      }
+    } catch (e) {
+      hintText = explainGitApiUnavailable(e);
+      disabledTitle = "Could not reach the API — use localhost with npm run server.";
+    }
+
+    gitPublishHint.textContent = hintText;
+    setGitPushFormEnabled(canPush, disabledTitle);
+  }
+
   async function loadCategoryTaxonomyPanel() {
     if (categoryTaxonomyMsg) categoryTaxonomyMsg.textContent = "";
     try {
@@ -539,6 +609,7 @@
         await loadCatalog();
         await loadSitePanels();
         await loadCategoryTaxonomyPanel();
+        await loadGitPublishPanel();
         setActiveTab("products");
         return true;
       }
@@ -944,6 +1015,27 @@
         if (categoryTaxonomyMsg) categoryTaxonomyMsg.textContent = "Saved category list.";
       } catch (e) {
         if (categoryTaxonomyMsg) categoryTaxonomyMsg.textContent = e.message || String(e);
+      }
+    });
+  }
+
+  if (gitPublishBtn) {
+    gitPublishBtn.addEventListener("click", async () => {
+      if (gitPublishMsg) gitPublishMsg.textContent = "";
+      gitPublishBtn.disabled = true;
+      try {
+        const message =
+          gitPublishMessage && gitPublishMessage.value ? String(gitPublishMessage.value).trim() : "";
+        const out = await api("/api/admin/git-push", { method: "POST", body: { message } });
+        if (out && out.nothingToCommit) {
+          if (gitPublishMsg) gitPublishMsg.textContent = out.message || "Nothing to commit.";
+        } else if (gitPublishMsg) {
+          gitPublishMsg.textContent = "Committed and pushed to GitHub.";
+        }
+      } catch (e) {
+        if (gitPublishMsg) gitPublishMsg.textContent = explainGitApiUnavailable(e);
+      } finally {
+        gitPublishBtn.disabled = false;
       }
     });
   }

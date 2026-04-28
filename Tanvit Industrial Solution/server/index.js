@@ -8,17 +8,159 @@
  * Default ADMIN_PASSWORD is "changeme" (override in production).
  *
  * Optional: create a `.env` file in the project root (see `.env.example`). It is gitignored.
+ *
+ * Optional (local only): ALLOW_ADMIN_GIT_PUSH=1 enables POST /api/admin/git-push so /admin/ can
+ * git add / commit / push the project folder (see docs/WORKFLOW-LOCAL-ADMIN-FIR-PUSH.md).
  */
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const fs = require("fs");
 const crypto = require("crypto");
+const { execFile } = require("child_process");
 const express = require("express");
 const session = require("express-session");
 const multer = require("multer");
 
 const ROOT = path.join(__dirname, "..");
 const DATA_DIR = path.join(ROOT, "data");
+
+/** Local-only: allow POST /api/admin/git-push (must set ALLOW_ADMIN_GIT_PUSH=1 in .env). */
+function adminGitPushAllowed() {
+  const v = String(process.env.ALLOW_ADMIN_GIT_PUSH || "")
+    .trim()
+    .toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+function findGitRoot(startDir) {
+  const override = String(process.env.GIT_REPO_ROOT || "").trim();
+  if (override) {
+    const abs = path.resolve(override);
+    if (fs.existsSync(path.join(abs, ".git"))) return abs;
+    return null;
+  }
+  let dir = path.resolve(startDir);
+  for (let i = 0; i < 10; i++) {
+    if (fs.existsSync(path.join(dir, ".git"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+/** Path spec for `git add -- <spec>`: project folder under monorepo, or `.` if repo root is the site. */
+function gitAddPathSpec(gitRoot, projectRoot) {
+  const rel = path.relative(gitRoot, path.resolve(projectRoot));
+  if (rel.startsWith("..")) {
+    throw new Error("Project folder is outside the git repository");
+  }
+  const posix = rel.split(path.sep).join("/");
+  if (!posix || posix === ".") return ".";
+  return posix.endsWith("/") ? posix : posix + "/";
+}
+
+function sanitizeGitCommitMessage(raw) {
+  let s = String(raw || "")
+    .trim()
+    .replace(/[\r\n\x00]/g, " ")
+    .slice(0, 120);
+  if (!s) s = "Admin update";
+  return s;
+}
+
+function runGit(gitRoot, args, extraEnv) {
+  return new Promise((resolve, reject) => {
+    const env = extraEnv ? Object.assign({}, process.env, extraEnv) : process.env;
+    execFile(
+      "git",
+      ["-C", gitRoot, ...args],
+      { encoding: "utf8", maxBuffer: 10 * 1024 * 1024, env },
+      (err, stdout, stderr) => {
+        const out = ((stdout || "") + (stderr || "")).trim();
+        if (err) {
+          const msg = out || err.message || "git failed";
+          const e = new Error(msg);
+          e.code = err.code;
+          return reject(e);
+        }
+        resolve(stdout || "");
+      }
+    );
+  });
+}
+
+function gitHasStagedChanges(gitRoot) {
+  return new Promise((resolve, reject) => {
+    execFile("git", ["-C", gitRoot, "diff", "--cached", "--quiet"], (err) => {
+      if (!err) resolve(false);
+      else if (err && err.code === 1) resolve(true);
+      else reject(err || new Error("git diff failed"));
+    });
+  });
+}
+
+function readGitConfigValue(gitRoot, key, env) {
+  return new Promise((resolve) => {
+    execFile("git", ["-C", gitRoot, "config", "--get", key], { encoding: "utf8", env: env || process.env }, (err, stdout) => {
+      if (err) return resolve("");
+      resolve(String(stdout || "").trim());
+    });
+  });
+}
+
+function sanitizeGitAuthorPart(s, maxLen, fallback) {
+  const t = String(s || "")
+    .replace(/[\r\n\x00"]/g, "")
+    .trim()
+    .slice(0, maxLen);
+  return t || fallback;
+}
+
+/** For non-interactive admin commits: env, then repo/global git config, then safe local fallback. */
+async function resolveAuthorForAdminCommit(gitRoot, envPush) {
+  const fromEnvName = String(process.env.GIT_AUTHOR_NAME || "").trim();
+  const fromEnvEmail = String(process.env.GIT_AUTHOR_EMAIL || "").trim();
+  if (fromEnvName && fromEnvEmail) {
+    return {
+      name: sanitizeGitAuthorPart(fromEnvName, 80, "Tanvit admin"),
+      email: sanitizeGitAuthorPart(fromEnvEmail, 120, "tanvit-admin@local")
+    };
+  }
+  const gn = await readGitConfigValue(gitRoot, "user.name", envPush);
+  const ge = await readGitConfigValue(gitRoot, "user.email", envPush);
+  if (gn && ge) {
+    return { name: sanitizeGitAuthorPart(gn, 80, "Tanvit admin"), email: sanitizeGitAuthorPart(ge, 120, "tanvit-admin@local") };
+  }
+  return { name: "Tanvit site admin", email: "tanvit-admin@local" };
+}
+
+async function resolvePushBranch(gitRoot) {
+  let b = (await runGit(gitRoot, ["rev-parse", "--abbrev-ref", "HEAD"])).trim();
+  if (b === "HEAD") b = String(process.env.GIT_PUSH_BRANCH || "main").trim() || "main";
+  return b;
+}
+
+/** One-off HTTPS URL with token for github.com when GIT_PUSH_TOKEN or GITHUB_TOKEN is set. */
+async function buildOptionalTokenPushUrl(gitRoot) {
+  const token = String(process.env.GIT_PUSH_TOKEN || process.env.GITHUB_TOKEN || "").trim();
+  if (!token) return null;
+  let originUrl;
+  try {
+    originUrl = (await runGit(gitRoot, ["remote", "get-url", "origin"])).trim();
+  } catch {
+    return null;
+  }
+  if (!originUrl || originUrl.startsWith("git@")) return null;
+  let u = originUrl.replace(/\.git$/i, "");
+  u = u.replace(/^https:\/\/[^/@]+@/i, "https://");
+  const m = u.match(/^https:\/\/github\.com\/([a-z0-9_.-]+\/[a-z0-9_.-]+)\/?$/i);
+  if (!m) return null;
+  return `https://x-access-token:${encodeURIComponent(token)}@github.com/${m[1]}.git`;
+}
+
+let lastGitPushAt = 0;
+const GIT_PUSH_COOLDOWN_MS = 5000;
 const CATALOG_PATH = path.join(DATA_DIR, "catalog.json");
 const CLIENTS_PATH = path.join(DATA_DIR, "clients.json");
 const SITE_PATH = path.join(DATA_DIR, "site.json");
@@ -582,6 +724,134 @@ app.put("/api/admin/category-taxonomy", requireAdmin, (req, res) => {
     console.error(e);
     res.status(400).json({ error: String(e.message) });
   }
+});
+
+app.get("/api/admin/git-publish-info", requireAdmin, (_req, res) => {
+  const allowed = adminGitPushAllowed();
+  let hasGit = false;
+  let scopeLabel = "";
+  try {
+    const gr = findGitRoot(ROOT);
+    hasGit = !!gr;
+    if (gr) scopeLabel = gitAddPathSpec(gr, ROOT);
+  } catch {
+    hasGit = false;
+  }
+  let hint = "";
+  if (!allowed) {
+    hint =
+      "Git push from admin is off. Add ALLOW_ADMIN_GIT_PUSH=1 to your local .env (never on a shared server without understanding the risk).";
+  } else if (!hasGit) {
+    hint =
+      "No .git found above this folder. Open the project from your clone, or set GIT_REPO_ROOT to the folder that contains .git.";
+  } else if (scopeLabel && scopeLabel !== ".") {
+    hint = "Only paths under “" + scopeLabel.replace(/\/$/, "") + "” will be staged (rest of the repo is untouched).";
+  } else {
+    hint = "The whole git repo under this folder will be staged.";
+  }
+  res.json({ allowed, hasGit, scopeLabel, hint });
+});
+
+app.post("/api/admin/git-push", requireAdmin, async (req, res) => {
+  if (!adminGitPushAllowed()) {
+    return res.status(403).json({
+      error: "Git push from admin is disabled. Set ALLOW_ADMIN_GIT_PUSH=1 in .env on this machine only."
+    });
+  }
+  const now = Date.now();
+  if (now - lastGitPushAt < GIT_PUSH_COOLDOWN_MS) {
+    return res.status(429).json({ error: "Please wait a few seconds before pushing again." });
+  }
+  lastGitPushAt = now;
+
+  let gitRoot;
+  try {
+    gitRoot = findGitRoot(ROOT);
+  } catch (e) {
+    return res.status(500).json({ error: String(e.message) });
+  }
+  if (!gitRoot) {
+    return res.status(400).json({
+      error: "No git repository found. Clone the repo or set GIT_REPO_ROOT to the directory that contains .git."
+    });
+  }
+
+  let addSpec;
+  try {
+    addSpec = gitAddPathSpec(gitRoot, ROOT);
+  } catch (e) {
+    return res.status(400).json({ error: String(e.message) });
+  }
+
+  const msg = sanitizeGitCommitMessage(req.body && req.body.message);
+  const envPush = Object.assign({}, process.env, {
+    GIT_TERMINAL_PROMPT: "0",
+    GCM_INTERACTIVE: "Never"
+  });
+
+  try {
+    await runGit(gitRoot, ["add", "--", addSpec], envPush);
+    const hasStaged = await gitHasStagedChanges(gitRoot);
+    if (!hasStaged) {
+      lastGitPushAt = 0;
+      return res.json({
+        ok: true,
+        nothingToCommit: true,
+        message:
+          "No changes to commit under this project folder. Save something in admin first (or files are already committed)."
+      });
+    }
+    const author = await resolveAuthorForAdminCommit(gitRoot, envPush);
+    await runGit(
+      gitRoot,
+      [
+        "-c",
+        "user.name=" + author.name,
+        "-c",
+        "user.email=" + author.email,
+        "-c",
+        "commit.gpgsign=false",
+        "commit",
+        "--no-verify",
+        "-m",
+        "admin: " + msg
+      ],
+      envPush
+    );
+  } catch (e) {
+    lastGitPushAt = 0;
+    console.error(e);
+    let hint = "";
+    const m = String(e.message || e);
+    if (/gpg|signing|secret key/i.test(m)) {
+      hint = " GPG signing blocked this commit; server now forces gpg off for admin commits — pull latest server code.";
+    } else if (/hook|husky|pre-commit/i.test(m)) {
+      hint = " A git hook failed; admin commits use --no-verify — pull latest server code.";
+    } else if (/user\.name|tell me who you are|author identity/i.test(m)) {
+      hint = ' Set identity: git config --global user.email "you@example.com" && git config --global user.name "Your name", or GIT_AUTHOR_NAME + GIT_AUTHOR_EMAIL in .env.';
+    }
+    return res.status(400).json({ error: String(e.message || e) + hint });
+  }
+
+  try {
+    const tokenUrl = await buildOptionalTokenPushUrl(gitRoot);
+    if (tokenUrl) {
+      const br = await resolvePushBranch(gitRoot);
+      await runGit(gitRoot, ["push", "--quiet", tokenUrl, "HEAD:refs/heads/" + br], envPush);
+    } else {
+      await runGit(gitRoot, ["push", "--quiet"], envPush);
+    }
+  } catch (e) {
+    lastGitPushAt = 0;
+    console.error(e);
+    return res.status(400).json({
+      error:
+        String(e.message || e) +
+        " If login failed, use SSH/credential manager for “origin”, or set GIT_PUSH_TOKEN (repo scope) for HTTPS remotes on github.com."
+    });
+  }
+
+  res.json({ ok: true, pushed: true });
 });
 
 app.post("/api/admin/upload", requireAdmin, (req, res) => {

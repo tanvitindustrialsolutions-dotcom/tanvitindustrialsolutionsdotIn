@@ -163,6 +163,20 @@
         <p id="clientsMsg" class="admin-msg" role="status"></p>
       </div>
 
+      <div class="admin-card" id="gitPublishCard">
+        <h2>GitHub — commit &amp; push</h2>
+        <p class="hint" style="margin-top:0">Works only on <strong>localhost</strong> with <code>npm run server</code> — not on the live static site.</p>
+        <p class="hint" id="gitPublishHint">Loading…</p>
+        <div id="gitPublishControls">
+          <label for="gitPublishMessage">Commit message (optional)</label>
+          <input type="text" id="gitPublishMessage" maxlength="120" placeholder="e.g. price update, new client logo">
+          <div class="admin-row-btns" style="margin-top:0.75rem">
+            <button type="button" class="btn primary" id="gitPublishBtn" disabled title="Checking…">Commit &amp; push to GitHub</button>
+          </div>
+        </div>
+        <p id="gitPublishMsg" class="admin-msg" role="status"></p>
+      </div>
+
     </div>
 
   </section>

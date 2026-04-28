@@ -16,8 +16,9 @@
 2. **`.env`** banao (ek baar) — `ADMIN_PASSWORD`, `SESSION_SECRET` ([`.env.example`](../.env.example)).  
 3. Terminal: `npm run server`  
 4. Browser: `http://localhost:8787/admin/` — yahan se jo edit karo **disk par** `data/` aur `assets/` mein save hota hai.  
-5. **Git:** badli hui files commit + push:  
-   `git add` → `git commit -m "..."` → `git push`  
+5. **Git:**  
+   - **Option A — admin se:** `.env` mein `ALLOW_ADMIN_GIT_PUSH=1` lagao (sirf apne PC par). Monorepo ho to `GIT_REPO_ROOT` bhi (jaise `C:\BHANU`). Phir **Site & clients** tab ke neeche **Commit & push to GitHub** use karo. Pehli baar `git config user.name` / `user.email` set karna pad sakta hai; HTTPS ke liye optional `GIT_PUSH_TOKEN` — details [`.env.example`](../.env.example).  
+   - **Option B — manually:** `git add` → `git commit` → `git push`  
 6. **Hostinger:**  
    - **Option A — Auto:** GitHub Action jo FTP se `public_html` par daale (template: [`.github/workflows/hostinger-ftps-deploy.example.yml`](../.github/workflows/hostinger-ftps-deploy.example.yml)).  
    - **Option B — Manual:** Hostinger **File Manager** se sirf badli files upload karo (ya poora folder zip — dhyan se).
